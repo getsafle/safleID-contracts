@@ -2,7 +2,8 @@ const RegistrarStorage = artifacts.require('RegistrarStorage.sol');
 const RegistrarMain = artifacts.require('RegistrarMain.sol');
 const Auction = artifacts.require('Auction.sol');
 
-const { increaseTimeTo, duration } = require('openzeppelin-solidity/test/helpers/increaseTime');
+const { duration } = require('openzeppelin-solidity/test/helpers/increaseTime');
+const { time } = require('@openzeppelin/test-helpers');
 const { latestTime } = require('openzeppelin-solidity/test/helpers/latestTime');
 
 var Web3 = require("web3");
@@ -633,7 +634,7 @@ contract('Inblox Contract', async (accounts) => {
     it('Should return the bids of all bidders other than winner ', async () => {
 
         this.openingTime = (await latestTime());
-        await increaseTimeTo(this.openingTime + duration.seconds(2678400));
+        await time.increaseTo(this.openingTime + duration.seconds(2678400));
 
 
         let walletBalanceInitially = await web3.eth.getBalance(accounts[6]);
@@ -641,30 +642,8 @@ contract('Inblox Contract', async (accounts) => {
         await this.Auction.refundOtherBidders({ from: accounts[5], gas: 600000000 });
 
         let walletBalanceLater = await web3.eth.getBalance(accounts[6]);
-        let updateBalance = walletBalanceInitially.toNumber() + 1 * 10 ** 18;
-        assert.equal(walletBalanceLater.toNumber(), updateBalance);
-    });
-
-    it('Should not transfer the handle name to winner and highest bid to auctioner ', async () => {
-
-
-        try {
-
-            await this.Auction.transferHandleNameToWinner({ from: accounts[2], gas: 600000000 });
-
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert bids are not yet refunded -- Reason given: bids are not yet refunded.';
-            assert.equal(error.message, error_);
-        }
-
-
-    });
-
-
-    it('Should transfer the handle name to winner and highest bid to auctioner ', async () => {
-
-        await this.Auction.transferHandleNameToWinner({ from: accounts[5], gas: 600000000 });
-
+        let updateBalance = parseInt(walletBalanceInitially) + 1 * 10 ** 18;
+        assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
     it('Should get a handle name by address after update', async () => {
@@ -908,7 +887,7 @@ contract('Inblox Contract', async (accounts) => {
     it('Should check Old Handles details', async () => {
 
         let resolveCoinHandleName = await this.storage.OldHandles(accounts[5], 1);
-        let resolveCoinHandleName1 = await this.storage.OldHandles(accounts[5], 2);
+        let resolveCoinHandleName1 = await this.storage.OldHandles(accounts[5], 0);
         console.log(resolveCoinHandleName);
         console.log(resolveCoinHandleName1);
 
@@ -916,8 +895,12 @@ contract('Inblox Contract', async (accounts) => {
 
     it('Should not check user handle name from address length more then actual address length', async () => {
 
-        let resolveHandleName = await this.storage.resolveHandleName('0x0906aF095470F7Dbf6eB0ff698F9f576AFA961BAA');
-        assert.equal(resolveHandleName.toString(), 'absanasa');
+        try {           
+            await this.storage.resolveHandleName('0x0906aF095470F7Dbf6eB0ff698F9f576AFA961BAA');
+        } catch (error) {
+            const error_ = 'invalid address (arg="_userAddress", coderType="address", value="0x0906aF095470F7Dbf6eB0ff698F9f576AFA961BAA")';
+            assert.equal(error.message, error_);
+        }
     });
 
     it('Should check user handle name from address', async () => {
@@ -928,8 +911,12 @@ contract('Inblox Contract', async (accounts) => {
 
     it('Should not check user handle name from address length less then actual address length', async () => {
 
-        let resolveHandleName = await this.storage.resolveHandleName('0x0906aF095470F7Dbf6eB0ff698F9f576AFA961B');
-        assert.equal(resolveHandleName.toString(), 'absanasa');
+        try {
+            await this.storage.resolveHandleName('0x0906aF095470F7Dbf6eB0ff698F9f576AFA961B');
+        } catch (error) {
+            const error_ = 'invalid address (arg="_userAddress", coderType="address", value="0x0906aF095470F7Dbf6eB0ff698F9f576AFA961B")';
+            assert.equal(error.message, error_);
+        }
     });
 
     it('Should not check user handle name from address(0) ', async () => {
