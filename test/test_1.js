@@ -12,11 +12,11 @@ var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 var Web3Utils = require('web3-utils');
 contract('Inblox Contract', async (accounts) => {
 
-    it('Should correctly initialize constructor values of RegistrarMain Contract', async () => {
+    it('Should deploy the Main Contract with the constructor.', async () => {
         this.tokenhold = await RegistrarMain.new(accounts[1], { gas: 600000000 });
     });
 
-    it('Should not be able to set a fees for registrar by non owner', async () => {
+    it('Should return an error when Registrar registration fees is set by non contract owner.', async () => {
         try {
             let registrationFees = 1 * 10 ** 18;
             await this.tokenhold.setRegistrarFees(Web3Utils.toHex(registrationFees), { from: accounts[1] });
@@ -26,17 +26,17 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should set a fees for registrar', async () => {
+    it('Should set a fees for registrar.', async () => {
         let registrationFees = 1 * 10 ** 18;
         await this.tokenhold.setRegistrarFees(Web3Utils.toHex(registrationFees), { from: accounts[0] });
     });
 
-    it('Should check a fees for registrar', async () => {
+    it('Should correctly return the registrar fees.', async () => {
         let registrarFees = await this.tokenhold.registrarFees.call();
         assert.equal(registrarFees.toString() / 10 ** 18, 1);
     });
 
-    it('Should not set a fees for Handle Name', async () => {
+    it('Should return an error when Registrar Handlename fees is set by non contract owner.', async () => {
         try {
             let registrationFees = 1 * 10 ** 18;
             await this.tokenhold.setHandleNameFees(Web3Utils.toHex(registrationFees), { from: accounts[1] });
@@ -46,31 +46,31 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should set a fees for Handle Name', async () => {
+    it('Should set the fees for Handlename.', async () => {
         let registrationFees = 1 * 10 ** 18;
         await this.tokenhold.setHandleNameFees(Web3Utils.toHex(registrationFees), { from: accounts[0] });
     });
 
-    it('Should check a fees for handle name', async () => {
+    it('Should check the Handlename fees.', async () => {
         let registrarFees = await this.tokenhold.userHandleNameRegFees.call();
         assert.equal(registrarFees.toString() / 10 ** 18, 1);
     });
 
-    it('Should check a contract owner', async () => {
+    it('Should correctly return the contract owner.', async () => {
         let contractOwner = await this.tokenhold.contractOwner.call();
         assert.equal(contractOwner, accounts[0]);
     });
 
-    it('Should check a wallet address', async () => {
+    it('Should correctly return the wallet address.', async () => {
         let walletAddress = await this.tokenhold.walletAddress.call();
         assert.equal(walletAddress, accounts[1]);
     });
 
-    it('Should correctly initialize constructor values of Registrar Storage Contract', async () => {
+    it('Should deploy the Storage Contract with the constructor.', async () => {
         this.storage = await RegistrarStorage.new(this.tokenhold.address);
     });
 
-    it('Should not set storage contract address', async () => {
+    it('Should return an error when storage contract address is set by non contract owner.', async () => {
         try {
             await this.tokenhold.setRegistrarStorageContract(this.storage.address, { from: accounts[1] });
         } catch (error) {
@@ -79,21 +79,21 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should set storage contract address', async () => {
+    it('Should correctly set the Storage contract address.', async () => {
         await this.tokenhold.setRegistrarStorageContract(this.storage.address, { from: accounts[0] });
     });
 
-    it('Should check a storage contract owner address', async () => {
+    it('Should correctly return the Storage contract owner address.', async () => {
         let contractOwner = await this.storage.contractOwner.call();
         assert.equal(contractOwner, accounts[0]);
     });
 
-    it('Should check a storage contract address', async () => {
+    it('Should correctly return the storage contract address.', async () => {
         let registrarStorageContractAddress = await this.tokenhold.registrarStorageContractAddress.call();
         assert.equal(registrarStorageContractAddress, this.storage.address);
     });
 
-    it('Should not be able to set registrar at main contract with name Length lesser then 4', async () => {
+    it('Should return an error when Registrar name length is less than 4.', async () => {
         try {
             await this.tokenhold.addRegistrar('QUI', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -102,7 +102,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to set registrar at main contract with name Length higher then 16', async () => {
+    it('Should return an error when Registrar name length is less than 16.', async () => {
         try {
             await this.tokenhold.addRegistrar('QUILLHASHABHISHEKSHARMA', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -111,7 +111,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to set registrar at storage contract by non main contract', async () => {
+    it('Should return an error when registerRegistrar method is called by non Main Contract.', async () => {
         try {
             await this.storage.registerRegistrar(accounts[2], 'abhishek', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -120,7 +120,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should set registrar at main contract', async () => {
+    it('Should set Registrar at Main Contract.', async () => {
         let walletBalanceInitially = await web3.eth.getBalance(accounts[1]);
         await this.tokenhold.addRegistrar('abhishek', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         let walletBalanceLater = await web3.eth.getBalance(accounts[1]);
@@ -128,7 +128,7 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should not be able to set registrar at main contract with same name in capitals', async () => {
+    it('Should return an error when registrar is set with the same name in upper case characters.', async () => {
         try {
             await this.tokenhold.addRegistrar('ABHISHEK', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -137,7 +137,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to set registrar at main contract with same name', async () => {
+    it('Should return an error when registrar is set with the same name.', async () => {
         try {
             await this.tokenhold.addRegistrar('abhishek', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -146,7 +146,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to set registrar at main contract, by already registered registrar ', async () => {
+    it('Should return an error when registrar is registered by an already registered registrar.', async () => {
         try {
             await this.tokenhold.addRegistrar('abhisheksharma', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -155,7 +155,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should set registrar at main contract', async () => {
+    it('Should successfully register Registrar at Main contract.', async () => {
         let walletBalanceInitially = await web3.eth.getBalance(accounts[1]);
         await this.tokenhold.addRegistrar('abhisheksharma', { from: accounts[3], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         let walletBalanceLater = await web3.eth.getBalance(accounts[1]);
@@ -163,7 +163,7 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should not be able to set registrar at main contract with same name', async () => {
+    it('Should return an error when Registrar is registered with same name at Main contract.', async () => {
         try {
             await this.tokenhold.addRegistrar('ABHISHEKSHARMA', { from: accounts[4], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -172,7 +172,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to set registrar at main contract with same name in lower letters', async () => {
+    it('Should return an error when Registrar is registerd with same name in lower case characters.', async () => {
         try {
             await this.tokenhold.addRegistrar('abhisheksharma', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -181,7 +181,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to set registrar at main contract, different name, by already registered registrar ', async () => {
+    it('Should return an error when Registrar is set with a different name by an already registered Registrar.', async () => {
         try {
             await this.tokenhold.addRegistrar('abhisheksharmaaas', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -190,36 +190,36 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should get a address of a registrar from address', async () => {
+    it('Should get the address of a Registrar from Registrar name.', async () => {
         let registrarName = await this.storage.resolveRegistrarFromHandleNameString.call('abhishek');
         assert.equal(registrarName, accounts[2]);
     });
 
-    it('Should get a total registrar registered', async () => {
+    it('Should get the total number of registered Registrars.', async () => {
         let totalRegistrars = await this.storage.totalRegistrars.call();
         assert.equal(totalRegistrars, 2);
     });
 
-    it('Should get a registrar Info by Registrar Address', async () => {
+    it('Should get the Registrar Info by Registrar address.', async () => {
         let Registrars = await this.storage.Registrars.call(accounts[2]);
         assert.equal(Registrars.isRegisteredRegistrar, true);
         assert.equal(Registrars.registrarName, 'abhishek');
         assert.equal(Registrars.registarAddress, accounts[2]);
     });
 
-    it('Should get a registrar Info by Registrar Address for account 3', async () => {
+    it('Should get the Registrar info by Registrar Address for Account 3.', async () => {
         let Registrars = await this.storage.Registrars.call(accounts[3]);
         assert.equal(Registrars.isRegisteredRegistrar, true);
         assert.equal(Registrars.registrarName, 'abhisheksharma');
         assert.equal(Registrars.registarAddress, accounts[3]);
     });
 
-    it('Should get a registrar name by address', async () => {
+    it('Should get a Registrar name by address.', async () => {
         let resolveRegistrarFromaddress = await this.storage.resolveRegistrarFromaddress(accounts[2]);
         assert.equal(resolveRegistrarFromaddress, 'abhishek');
     });
 
-    it('Should not get a registrar name by address when registrar is not valid', async () => {
+    it('Should return an error when querying the infor for non-registered Registrar.', async () => {
         try {
             await this.storage.resolveRegistrarFromaddress(accounts[5]);
         } catch (error) {
@@ -228,7 +228,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should Not update registrar at main contract, when Ragistrar not registered', async () => {
+    it('Should return an error when trying to update non-registered Registrar.', async () => {
         try {
             await this.tokenhold.updateRegistrar('abhisheks', { from: accounts[0], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -237,7 +237,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not update a registrar at main contract when length is less then 4', async () => {
+    it('Should return an error when updating a Registrar with length less than 4.', async () => {
         try {
             await this.tokenhold.updateRegistrar('abh', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -246,7 +246,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should update registrar at main contract', async () => {
+    it('Should successfully update Registrar at Main contract.', async () => {
         let walletBalanceInitially = await web3.eth.getBalance(accounts[1]);
         await this.tokenhold.updateRegistrar('abhisheks', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         let walletBalanceLater = await web3.eth.getBalance(accounts[1]);
@@ -254,33 +254,17 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should get a address of a registrar from address', async () => {
+    it('Should get the address of a Registrar from Registrar name.', async () => {
         let registrarName = await this.storage.resolveRegistrarFromHandleNameString.call('abhisheks');
         assert.equal(registrarName, accounts[2]);
     });
 
-    it('Should get a registrar Info by Registrar Address for account 2', async () => {
-        let Registrars = await this.storage.Registrars.call(accounts[2]);
-        assert.equal(Registrars.isRegisteredRegistrar, true);
-        assert.equal(Registrars.registrarName, 'abhisheks');
-        assert.equal(Registrars.registarAddress, accounts[2]);
-    });
-
-    it('Should get a address of a registrar from address after update', async () => {
+    it('Should get the address of a Registrar from address post updating.', async () => {
         let registrarName = await this.storage.resolveRegistrarFromHandleNameString.call('abhisheks');
         assert.equal(registrarName, accounts[2]);
     });
 
-    it('Should get a address of a registrar from address after update', async () => {
-        try {
-            await this.storage.resolveRegistrarFromHandleNameString.call('abhishek');
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert Resolver : Ragistrar is not yet registered for this handle name.';
-            assert.equal(error.message, error_);
-        }
-    });
-
-    it('Should set registrar at main contract with name that was taken previously', async () => {
+    it('Should set Registrar at Main contract with name that was taken previously.', async () => {
         let walletBalanceInitially = await web3.eth.getBalance(accounts[1]);
         await this.tokenhold.addRegistrar('abhishek', { from: accounts[4], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         let walletBalanceLater = await web3.eth.getBalance(accounts[1]);
@@ -288,34 +272,12 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should get a registrar Info by Registrar Address for account 4', async () => {
-        let Registrars = await this.storage.Registrars.call(accounts[4]);
-        assert.equal(Registrars.isRegisteredRegistrar, true);
-        assert.equal(Registrars.registrarName, 'abhishek');
-        assert.equal(Registrars.registarAddress, accounts[4]);
-    });
-
-    it('Should get a address of a registrar from address', async () => {
-        let registrarName = await this.storage.resolveRegistrarFromHandleNameString.call('abhishek');
-        assert.equal(registrarName, accounts[4]);
-    });
-
-    it('Should get a total registrar registered', async () => {
-        let totalRegistrars = await this.storage.totalRegistrars.call();
-        assert.equal(totalRegistrars, 3);
-    });
-
-    it('Should get a update registrar count', async () => {
+    it('Should get the Registrar updation count.', async () => {
         let updateRegistrarCount = await this.storage.updateRegistrarCount.call(accounts[2]);
         assert.equal(updateRegistrarCount.toNumber(), 1);
     });
 
-    it('Should get a update registrar count of account 3', async () => {
-        let updateRegistrarCount = await this.storage.updateRegistrarCount.call(accounts[3]);
-        assert.equal(updateRegistrarCount.toNumber(), 0);
-    });
-
-    it('Should not set handle name at main contract by valid ragistrar when caller is not a main contract', async () => {
+    it('Should not set Handlename at main contract by valid Registrar by non-main contract.', async () => {
         try {
             await this.storage.setAddressAndHandleName(accounts[5], accounts[2], 'absana', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -324,13 +286,12 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-
-    it('Should check if handle name user address already registered or not', async () => {
+    it('Should return false when an address is passed which is already registered.', async () => {
         let validHandleName = await this.storage.validHandleNameAddress(accounts[5]);
         assert.equal(validHandleName, false);
     });
 
-    it('Should not be able to set handle name at main contract by Registrar when contain special charcters', async () => {
+    it('Should return error when registering Handlename which contains special characters.', async () => {
         try {
             await this.tokenhold.addHandleName(accounts[5], 'absana_@#.', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -339,7 +300,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should set handle name at main contract by Registrar', async () => {
+    it('Should successfully set Handlename at Main contract by Registrar.', async () => {
         let walletBalanceInitially = await web3.eth.getBalance(accounts[1]);
         await this.tokenhold.addHandleName(accounts[5], 'absana', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         let walletBalanceLater = await web3.eth.getBalance(accounts[1]);
@@ -347,13 +308,12 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should check if handle name user address already registered or not', async () => {
+    it('Should check if Handlename user address already registered or not.', async () => {
         let validHandleName = await this.storage.validHandleNameAddress(accounts[5]);
         assert.equal(validHandleName, true);
     });
 
-    it('Should not set handle name at main contract by Registrar again', async () => {
-
+    it('Should return an error when Handlename is set at Main contract by Registrar again with same Handlename.', async () => {
         try {
             await this.tokenhold.addHandleName(accounts[5], 'absana', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -362,7 +322,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not set handle name at main contract by valid ragistrar, where name already registerd by Registrar', async () => {
+    it('Should return an error when trying to register Handlename same as that of Registrar name.', async () => {
         try {
             await this.tokenhold.addHandleName(accounts[5], 'abhishek', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -371,27 +331,22 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should get a handle name by address', async () => {
+    it('Should get a Handlename by address.', async () => {
         let resolveHandleNameString = await this.storage.resolveHandleNameString('absana');
         assert.equal(resolveHandleNameString, accounts[5]);
     });
 
-    it('Should get a handle name by address without error', async () => {
+    it('Should get a Handlename by address.', async () => {
         let resolveHandleNameOrRegistrarName = await this.storage.resolveHandleNameOrRegistrarName('absana');
         assert.equal(resolveHandleNameOrRegistrarName, accounts[5]);
     });
 
-    it('Should get a handle name by address without error for ragistrar', async () => {
+    it('Should get a Registrar name by address.', async () => {
         let resolveHandleNameOrRegistrarName = await this.storage.resolveHandleNameOrRegistrarName('abhishek');
         assert.equal(resolveHandleNameOrRegistrarName, accounts[4]);
     });
 
-    it('Should get a handle name by address without error for not registered Name', async () => {
-        let resolveHandleNameOrRegistrarName = await this.storage.resolveHandleNameOrRegistrarName('ABHI');
-        assert.equal(resolveHandleNameOrRegistrarName, 0x0000000000000000000000000000000000000000);
-    });
-
-    it('Should not be able update registrar at storage contract directly', async () => {
+    it('Should return an error when trying to update Registrar at Storage contract directly.', async () => {
         try {
             await this.storage.updateRegistrar(accounts[5], 'absanasa', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -400,7 +355,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able update registrar at main contract without value', async () => {
+    it('Should return an error when updating Handlename at main contract without value.', async () => {
         try {
             await this.tokenhold.updateHandleNameOfUser(accounts[5], 'absanasa', { from: accounts[2], gas: 600000000 });
         } catch (error) {
@@ -409,7 +364,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should update registrar at main contract', async () => {
+    it('Should successfully update Registrar at main contract.', async () => {
         let walletBalanceInitially = await web3.eth.getBalance(accounts[1]);
         await this.tokenhold.updateHandleNameOfUser(accounts[5], 'absanasa', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         let walletBalanceLater = await web3.eth.getBalance(accounts[1]);
@@ -418,7 +373,7 @@ contract('Inblox Contract', async (accounts) => {
 
     });
 
-    it('Should not set handle name at main contract by Registrar the name previously taken', async () => {
+    it('Should return error when trying to set Handlename which was set previously.', async () => {
         try {
             await this.tokenhold.addHandleName(accounts[8], 'absana', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
@@ -427,41 +382,41 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should get a handle name by address after update', async () => {
+    it('Should get a Handlename by address after update.', async () => {
         let resolveHandleNameString = await this.storage.resolveHandleNameString('absanasa');
         assert.equal(resolveHandleNameString, accounts[5]);
     });
 
-    it('Should get a handle name by address without error after update', async () => {
+    it('Should get a Handlename by address after update using different method.', async () => {
         let resolveHandleNameOrRegistrarName = await this.storage.resolveHandleNameOrRegistrarName('absanasa');
         assert.equal(resolveHandleNameOrRegistrarName, accounts[5]);
     });
 
-    it('Should get a total Handle Name Registered at storage contract', async () => {
+    it('Should get the total Handlenames registered at Storage contract.', async () => {
         let totalHandleNameRegistered = await this.storage.totalHandleNameRegistered();
         assert.equal(totalHandleNameRegistered.toNumber(), 2);
     });
 
-    it('Should correctly initialize constructor values of Auction Contract', async () => {
+    it('Should successfully deploy Auction contract with proper constructor.', async () => {
         this.Auction = await Auction.new(this.storage.address, { gas: 600000000 });
     });
 
-    it('Should check the storage contract address', async () => {
+    it('Should check the Storage contract address.', async () => {
         let contractAddress = await this.Auction.registrarStorageContractAddress.call({ gas: 600000000 });
         assert.equal(contractAddress, this.storage.address);
     });
 
-    it('Should check the contract Owner of auction', async () => {
+    it('Should return the contract owner of Auction contract.', async () => {
         let contractOwner = await this.Auction.contractOwner.call({ gas: 600000000 });
         assert.equal(contractOwner, accounts[0]);
     });
 
-    it('Should check if auction active or not by this address', async () => {
+    it('Should check if Auction is active or not by this address.', async () => {
         let alreadyActiveAuction = await this.Auction.alreadyActiveAuction.call(accounts[2], { gas: 600000000 });
         assert.equal(alreadyActiveAuction, false);
     });
 
-    it('Should set the auction contracts address at storage contract', async () => {
+    it('Should return error when set the Auction contract\'s address at Storage contract.', async () => {
         try {
             await this.storage.setAuctionContract(this.Auction.address, { from: accounts[1], gas: 600000000 });
         } catch (error) {
@@ -470,11 +425,11 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should set the auction contracts address at storage contract', async () => {
+    it('Should set the Auction contract address at Storage contract.', async () => {
         await this.storage.setAuctionContract(this.Auction.address, { gas: 600000000 });
     });
 
-    it('Should not start the Auction of accounts[5] handle name', async () => {
+    it('Should return error when starting the the Auction with improper timelimit.', async () => {
         try {
             await this.Auction.auctionHandlename('absanaSA', 865400 * 30, { from: accounts[6], gas: 600000000 });
         } catch (error) {
@@ -483,23 +438,23 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should start the Auction of accounts[5] handle name', async () => {
+    it('Should start the Auction of accounts[5] Handlename.', async () => {
         await this.Auction.auctionHandlename('absanaSA', 86400 * 30, { from: accounts[5], gas: 600000000 });
     });
 
-    it('Should check auction data of auctioner ', async () => {
+    it('Should return the Auction data of auctioner.', async () => {
         let auctiondata = await this.Auction.auction.call(accounts[5], { gas: 600000000 });
         assert.equal(auctiondata.isAuctionLive, true);
         assert.equal(auctiondata.auctionConductor, accounts[5]);
         assert.equal(auctiondata.handleName, 'absanasa');
     });
 
-    it('Should check handle name of address is in auction or not', async () => {
+    it('Should check if the Handlename of address is in auction or not.', async () => {
         let auctionProcess = await this.storage.auctionProcess.call(accounts[5], { gas: 600000000 });
         assert.equal(auctionProcess, true);
     });
 
-    it('Should not start the biding process without sending ether', async () => {
+    it('Should return an error when bidding function is called without Ether.', async () => {
         try {
             await this.Auction.bidForHandleName('absanaSA', { from: accounts[6], gas: 600000000 });
         } catch (error) {
@@ -508,11 +463,11 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should start the biding process', async () => {
+    it('Should start the bidding process.', async () => {
         await this.Auction.bidForHandleName('absanaSA', { from: accounts[6], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
     });
 
-    it('Should check auction data of auctioner ', async () => {
+    it('Should check the auction data of auctionerd', async () => {
         let auctiondata = await this.Auction.auction.call(accounts[5], { gas: 600000000 });
         assert.equal(auctiondata.isAuctionLive, true);
         assert.equal(auctiondata.auctionConductor, accounts[5]);
@@ -523,21 +478,21 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(auctiondata.highestBid.toString() / 10 ** 18, 1);
     });
 
-    it('Should check auction data of auctioner, array of auctioners ', async () => {
+    it('Should return the bidder data of auction in array.', async () => {
         let auctiondata = await this.Auction.arrayOfbidders(accounts[5], { gas: 600000000 });
         assert.equal(auctiondata[0], accounts[6]);
     });
 
-    it('Should check auction data of auctioner, getBidRate of bidder ', async () => {
+    it('Should return the bidRate of a particular bidder.', async () => {
         let auctiondata = await this.Auction.getBidRate(accounts[5], accounts[6], { gas: 600000000 });
         assert.equal(auctiondata.toString(), 1 * 10 ** 18);
     });
 
-    it('Should start the biding process by accounts[7]', async () => {
+    it('Should start the bidding process by accounts[7].', async () => {
         await this.Auction.bidForHandleName('absanaSA', { from: accounts[7], value: Web3Utils.toWei("2", "ether"), gas: 600000000 });
     });
 
-    it('Should check auction data of auctioner  by accounts[7]', async () => {
+    it('Should return the auction data of auctioner by accounts[7].', async () => {
         let auctiondata = await this.Auction.auction.call(accounts[5], { gas: 600000000 });
         assert.equal(auctiondata.isAuctionLive, true);
         assert.equal(auctiondata.auctionConductor, accounts[5]);
@@ -554,13 +509,7 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(auctiondata[1], accounts[7]);
     });
 
-    it('Should check auction data of auctioner, getBidRate of bidder ', async () => {
-        let auctiondata = await this.Auction.getBidRate(accounts[5], accounts[7], { gas: 600000000 });
-        assert.equal(auctiondata.toString(), 2 * 10 ** 18);
-    });
-
-
-    it('Should return the bids of all bidders other than winner ', async () => {
+    it('Should return the bids of all bidders other than winner.', async () => {
         this.openingTime = (await latestTime());
         await time.increaseTo(this.openingTime + duration.seconds(2678400));
 
@@ -573,17 +522,17 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should get a handle name by address after update', async () => {
+    it('Should get a address by Handlename after auction.', async () => {
         let resolveHandleNameString = await this.storage.resolveHandleNameString('absanasa');
         assert.equal(resolveHandleNameString, accounts[7]);
     });
 
-    it('Should get a handle name by address without error after update', async () => {
+    it('Should get a Handlename by address after update using a different method.', async () => {
         let resolveHandleNameOrRegistrarName = await this.storage.resolveHandleNameOrRegistrarName('absanasa');
         assert.equal(resolveHandleNameOrRegistrarName, accounts[7]);
     });
 
-    it('Should transfer the handle name directly to another account', async () => {
+    it('Should transfer the Handlename directly to another account.', async () => {
         await this.Auction.directlyTransferHandleName('absanasa', accounts[9], { from: accounts[7], gas: 600000000 });
     });
 
@@ -592,36 +541,36 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(resolveHandleNameString, accounts[9]);
     });
 
-    it('Should check if blockchain index taken or note before adding', async () => {
+    it('Should return false for blockchain index before adding.', async () => {
         let indexTaken = await this.storage.indexTaken(1);
         assert.equal(indexTaken, false);
     });
 
-    it('should add other Blockchain for resolving', async () => {
+    it('Should add other coin address.', async () => {
         await this.tokenhold.addCoins(1, 'BITCOIN', 'BTC', { from: accounts[2], gas: 600000000 });
     });
 
-    it('Should check if blockchain index taken or note', async () => {
+    it('Should return true for blockchain index after adding.', async () => {
         let indexTaken = await this.storage.indexTaken(1);
         assert.equal(indexTaken, true);
     });
 
-    it('Should get a Blockchain Name By Index', async () => {
+    it('Should get a coin name By index.', async () => {
         let indexOfCoin = await this.storage.indexOfCoin(1);
         assert.equal(indexOfCoin.toString(), 'bitcoin');
     });
 
-    it('Should get a Blockchain alias Name By Index', async () => {
+    it('Should get the blockchain alias name by index.', async () => {
         let getBlockchainAliasNameByIndex = await this.storage.getCoinAliasNameByIndex(1);
         assert.equal(getBlockchainAliasNameByIndex.toString(), 'btc');
     });
 
-    it('Should check if Blockchain Registered or not by blockchain name', async () => {
+    it('Should check if a particular coin name is registered or not by blockchain name.', async () => {
         let isBlockchainRegistered = await this.storage.isCoinRegistered('bitcoin');
         assert.equal(isBlockchainRegistered, true);
     });
 
-    it('should not be able to register new blockchain at same index that is used', async () => {
+    it('Should not be able to register another coin at same index.', async () => {
         try {
             await this.tokenhold.addCoins(1, 'BITCOINS', 'BTCS', { from: accounts[0], gas: 600000000 });
         } catch (error) {
@@ -630,7 +579,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('should not be able to register new blockchain by same name', async () => {
+    it('Should not be able to register new another coin of the same type.', async () => {
         try {
             await this.tokenhold.addCoins(2, 'BITCOIN', 'BTCS', { from: accounts[0], gas: 600000000 });
         } catch (error) {
@@ -639,7 +588,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('should not be able to register new blockchain by same Alias name', async () => {
+    it('Should not be able to register new blockchain by same alias name.', async () => {
         try {
             await this.tokenhold.addCoins(2, 'BITCOINSS', 'BTC', { from: accounts[2], gas: 600000000 });
         } catch (error) {
@@ -648,7 +597,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('should not be able to add other address to Blockchain for resolving who doesnt have handle name', async () => {
+    it('Should not be able to add other coin address for an account without Handlename.', async () => {
         try {
             await this.tokenhold.registerCoinAddress(accounts[9], 1, '3HqH1qGAqNWPpbrvyGjnRxNEjcUKD4e6ea', { from: accounts[2], gas: 600000000 });
         } catch (error) {
@@ -657,7 +606,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('should not be able to add other address to Blockchain for resolving by invalid index', async () => {
+    it('Should not be able to add other address to Blockchain for resolving at an invalid index.', async () => {
         try {
             await this.tokenhold.registerCoinAddress(accounts[8], 0, '3HqH1qGAqNWPpbrvyGjnRxNEjcUKD4e6ea', { from: accounts[2], gas: 600000000 });
         } catch (error) {
@@ -666,11 +615,11 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('should add other address to Blockchain for resolving', async () => {
+    it('Should successfully add other coin address.', async () => {
         await this.tokenhold.registerCoinAddress(accounts[7], 1, '3HqH1qGAqNWPpbrvyGjnRxNEjcUKD4e6ea', { from: accounts[2], gas: 600000000 });
     });
 
-    it('Should not be able to check by invalid index', async () => {
+    it('Should return an error at invalid index.', async () => {
         try {
             await this.storage.resolveCoinAddress('absana', 0);
         } catch (error) {
@@ -679,7 +628,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to check by invalid user name', async () => {
+    it('Should return an error at invalid coin name.', async () => {
         try {
             await this.storage.resolveCoinAddress('absanasasa', 0);
         } catch (error) {
@@ -688,21 +637,21 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should check if other address resolve', async () => {
+    it('Should successfully resolve other address.', async () => {
         let resolveCoinAddress = await this.storage.resolveCoinAddress('absanasa', 1);
         assert.equal(resolveCoinAddress.toString(), '3hqh1qgaqnwppbrvygjnrxnejcukd4e6ea');
     });
 
-    it('should updtae other address to Blockchain for resolving', async () => {
+    it('should successfully update other coin address.', async () => {
         await this.tokenhold.updateCoinAddress(accounts[7], 1, '3HqH1qGAqNWPpbrvyGjnRxNEjcUKD4e6ep', { from: accounts[2], gas: 600000000 });
     });
 
-    it('Should check if other address resolve', async () => {
+    it('Should successfully resolve other coin address using Handlename.', async () => {
         let resolveCoinAddress = await this.storage.resolveCoinAddress('absanasa', 1);
         assert.equal(resolveCoinAddress.toString(), '3hqh1qgaqnwppbrvygjnrxnejcukd4e6ep');
     });
 
-    it('Should not be able to check by invalid index', async () => {
+    it('Should return an error at invalid index.', async () => {
         try {
             await this.storage.resolveCoinHandleName('3hqh1qgaqnwppbrvygjnrxnejcukd4e6ea', 0);
         } catch (error) {
@@ -711,7 +660,7 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not be able to check by invalid address', async () => {
+    it('Should return an error at invalid address', async () => {
         try {
             await this.storage.resolveCoinHandleName('3vygjnrxnejcukd4e6ea', 1);
         } catch (error) {
@@ -720,12 +669,12 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should check if resolve Other HandleName', async () => {
+    it('Should resolve HandleName using coin address.', async () => {
         let resolveCoinHandleName = await this.storage.resolveCoinHandleName('3hqh1qgaqnwppbrvygjnrxnejcukd4e6ea', 1);
         assert.equal(resolveCoinHandleName.toString(), 'absanasa');
     });
 
-    it('Should update registrar at main contract second time', async () => {
+    it('Should update Registrar at Main contract second time.', async () => {
         let walletBalanceInitially = await web3.eth.getBalance(accounts[1]);
         await this.tokenhold.updateRegistrar('abhi21094', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         let walletBalanceLater = await web3.eth.getBalance(accounts[1]);
@@ -733,31 +682,30 @@ contract('Inblox Contract', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should not update registrar at main contract third time', async () => {
+    it('Should return an error when trying to update Registrar at Main contract third time.', async () => {
         try {
             await this.tokenhold.updateRegistrar('abhi21094', { from: accounts[2], value: Web3Utils.toWei("1", "ether"), gas: 600000000 });
         } catch (error) {
             var error_ = 'Returned error: VM Exception while processing transaction: revert new name is already taken -- Reason given: new name is already taken.';
             assert.equal(error.message, error_);
         }
-
     });
 
-    it('Should check Old Registrar Address To Names details', async () => {
+    it('Should return old Registrar address To Names details.', async () => {
         let resolveCoinHandleName = await this.storage.OldRegistrarAddressToNames(accounts[2], 0);
         let resolveCoinHandleName1 = await this.storage.OldRegistrarAddressToNames(accounts[2], 1);
         console.log(resolveCoinHandleName);
         console.log(resolveCoinHandleName1);
     });
 
-    it('Should check Old Handles details', async () => {
+    it('Should check old Handlename details.', async () => {
         let resolveCoinHandleName = await this.storage.OldHandles(accounts[5], 1);
         let resolveCoinHandleName1 = await this.storage.OldHandles(accounts[5], 0);
         console.log(resolveCoinHandleName);
         console.log(resolveCoinHandleName1);
     });
 
-    it('Should not check user handle name from address length more then actual address length', async () => {
+    it('Should return error when resolving address with length greater than usual.', async () => {
         try {           
             await this.storage.resolveHandleName('0x0906aF095470F7Dbf6eB0ff698F9f576AFA961BAA');
         } catch (error) {
@@ -766,12 +714,12 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should check user handle name from address', async () => {
+    it('Should return user handle name from address.', async () => {
         let resolveHandleName = await this.storage.resolveHandleName(accounts[9]);
         assert.equal(resolveHandleName.toString(), 'absanasa');
     });
 
-    it('Should not check user handle name from address length less then actual address length', async () => {
+    it('Should return error when resolving address with length less than usual.', async () => {
         try {
             await this.storage.resolveHandleName('0x0906aF095470F7Dbf6eB0ff698F9f576AFA961B');
         } catch (error) {
@@ -780,12 +728,12 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should not check user handle name from address(0) ', async () => {
+    it('Should resolve user Handlename from address(0).', async () => {
         let resolveHandleName = await this.storage.resolveHandleName(accounts[9]);
         assert.equal(resolveHandleName.toString(), 'absanasa');
     });
 
-    it('Should not check user handle name from address do not have handle name', async () => {
+    it('Should return an error when resolving Handlename from address which is not registered.', async () => {
         try {
             await this.storage.resolveHandleName(accounts[2]);
         } catch (error) {
@@ -794,12 +742,12 @@ contract('Inblox Contract', async (accounts) => {
         }
     });
 
-    it('Should check the valid handle name address', async () => {
+    it('Should return true when valid Handlename is passed.', async () => {
         let validHandleNameAddress = await this.storage.validHandleNameAddress(accounts[9]);
         assert.equal(validHandleNameAddress, true);
     });
 
-    it('Should check the valid handle name address', async () => {
+    it('Should return false when invalid Handlename is passed.', async () => {
         let validHandleNameAddress = await this.storage.validHandleNameAddress(accounts[5]);
         assert.equal(validHandleNameAddress, false);
     });
