@@ -16,8 +16,16 @@ Install truffle globally using the command,
 
 Spin up a local ganache instance using the command,
 
-```ganache-cli```
+```ganache-cli allowUnlimitedContractSize -l 1000000000000```
 
 Migrate the contracts to the ganache instance using the command,
 
 ```truffle migrate```
+
+To run the test cases,
+
+```truffle test```
+
+To run code coverage for the contracts,
+
+```truffle run coverage```
