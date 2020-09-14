@@ -60,3 +60,4 @@ Thumbs.db
 # truffle
 
 build/contracts
+coverage.json
