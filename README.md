@@ -24,7 +24,7 @@ Migrate the contracts to the ganache instance using the command,
 
 To run the test cases,
 
-```truffle test```
+```npm test```
 
 To run code coverage for the contracts,
 
