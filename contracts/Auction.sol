@@ -164,7 +164,7 @@ contract Auction is checkingContract {
     * @dev Transfer the handlename to another user
     * @param _handleName handlename of the user to be transferred
     * @param _newOwner address of the new owner
-    * @returns true
+    * @return true
     */
     function directlyTransferHandleName(string calldata _handleName, address _newOwner) external returns (bool){
 
@@ -176,7 +176,7 @@ contract Auction is checkingContract {
     /**
     * @dev Get the list of all bidders for an auction
     * @param _auctioner address of a auctioner
-    * @returns array of bidders
+    * @return array of bidders
     */
     function arrayOfbidders (address _auctioner) external view returns (address payable[] memory){
          require(auction[_auctioner].auctionConductor != address(0x0));
@@ -187,7 +187,7 @@ contract Auction is checkingContract {
     * @dev Get the bid of a particular bidder for an auction
     * @param _auctioner address of a auctioner
     * @param _bidder address of a bidder
-    * @returns bid of that particular bidder
+    * @return bid of that particular bidder
     */
     function getBidRate (address _auctioner, address _bidder) external view returns (uint256) {
         require(auction[_auctioner].auctionConductor != address(0x0));

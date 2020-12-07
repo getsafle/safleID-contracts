@@ -60,7 +60,7 @@ contract RegistrarMain is checkingContract{
     public
 
     {
-        require(_amount > 0);
+        require(_amount >= 0);
         userHandleNameRegFees = _amount;
 
     }
@@ -74,7 +74,7 @@ contract RegistrarMain is checkingContract{
     public
 
     {
-        require(_amount > 0);
+        require(_amount >= 0);
         registrarFees = _amount;
 
     }
@@ -209,7 +209,7 @@ contract RegistrarMain is checkingContract{
     * @param _indexnumber index of a new coin
     * @param _blockchainName Name of the coin
     * @param _aliasName Alias name in string
-    * @returns true if successful, else false
+    * @return true if successful, else false
     */
    function addCoins(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName) external returns (bool){
 
@@ -227,7 +227,7 @@ contract RegistrarMain is checkingContract{
     * @param _userAddress public address of a user
     * @param _index index of the blockchain to set the address
     * @param _address Coin address
-    * @returns true if successful, else false
+    * @return true if successful, else false
     */
     function registerCoinAddress(address _userAddress,uint256 _index, string calldata _address) external returns (bool){
         
@@ -244,7 +244,7 @@ contract RegistrarMain is checkingContract{
     * @param _userAddress address of the user
     * @param _index index of that blockchain
     * @param _address new address of that coin
-    * @returns true if successful, else false
+    * @return true if successful, else false
     */
     function updateCoinAddress(address _userAddress,uint256 _index, string calldata _address) external returns (bool){
 

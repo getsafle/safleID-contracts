@@ -85,7 +85,7 @@ contract RegistrarStorage is checkingContract {
     * Only the Main contract can call this function
     * @param _registrar address of the Registrar
     * @param _registrarName Registrar name
-    * @returns true
+    * @return true
     */
     function registerRegistrar(address _registrar, string calldata _registrarName) external onlyMainContract returns(bool)  {
 
@@ -114,7 +114,7 @@ contract RegistrarStorage is checkingContract {
     * Only the Main contract can call this function
     * @param _registrar address of the Registrar
     * @param _registrarNewName new name of the Registrar to update
-    * @returns true
+    * @return true
     */
     function updateRegistrar(address _registrar,string calldata _registrarNewName) external onlyMainContract returns (bool) {
 
@@ -147,7 +147,7 @@ contract RegistrarStorage is checkingContract {
     /**
     * @dev Resolve the registrar address from registrar name
     * @param _handleName handlename of the registrar
-    * @returns registrar address
+    * @return registrar address
     */
     function resolveRegistrarFromHandleNameString(string calldata _handleName)
     external
@@ -164,7 +164,7 @@ contract RegistrarStorage is checkingContract {
     /**
     * @dev Resolve the registrar name from registrar address
     * @param _registrar address of the Registrar
-    * @returns registrar name
+    * @return registrar name
     */
     function resolveRegistrarFromaddress(address  _registrar)
     external
@@ -184,7 +184,7 @@ contract RegistrarStorage is checkingContract {
     * @param _registrar address of the Registrar
     * @param _userAddress address of the new user
     * @param _handleName handlename of the new user
-    * @returns true
+    * @return true
     */
     function setAddressAndHandleName(address _registrar, address _userAddress, string calldata _handleName)  external onlyMainContract returns(bool)
     {
@@ -213,7 +213,7 @@ contract RegistrarStorage is checkingContract {
     * @param _registrar address of a Registrar
     * @param _userAddress address of the user
     * @param _handleName new handlename of that user
-    * @returns true
+    * @return true
     */
     function updateHandleName(address _registrar, address _userAddress, string calldata _handleName)  external onlyMainContract returns(bool)
     {
@@ -253,7 +253,7 @@ contract RegistrarStorage is checkingContract {
     * @param _handleName the handlename of the user to be trasferred
     * @param _oldOwner address of the old user
     * @param _newOwner address of the new user
-    * @returns true
+    * @return true
     */
     function transferhandleName (string calldata _handleName, address _oldOwner, address _newOwner) external auctionContract returns (bool) {
         
@@ -291,7 +291,7 @@ contract RegistrarStorage is checkingContract {
     /**
     * @dev resolve the address of the user using handlename
     * @param _handleName handlename of the user
-    * @returns address associated to that particular address
+    * @return address associated to that particular address
     */
     function resolveHandleNameString(string calldata _handleName)
     external
@@ -309,7 +309,7 @@ contract RegistrarStorage is checkingContract {
     * @dev Set the auction contract address
     * This function can only be called by the contract owner
     * @param _auctionAddress address of a auction contract
-    * @returns true
+    * @return true
     */
     function setAuctionContract (address _auctionAddress) external onlyOwner returns(bool){
 
@@ -320,7 +320,7 @@ contract RegistrarStorage is checkingContract {
     /**
     * @dev Resolve the address from handlename or registrar name
     * @param _handleName handlename of a user or ragistrar name
-    * @returns address of the user or Registrar
+    * @return address of the user or Registrar
     */
     function resolveHandleNameOrRegistrarName(string calldata _handleName)
     external
@@ -350,7 +350,7 @@ contract RegistrarStorage is checkingContract {
     * @dev Check if the handlename or Registrar name is taken
     * @param _handleName handlename of a user or Registrar name
     * @param _address address of a user or Registrar
-    * @returns true if the handlename or Registrar name is taken, else false
+    * @return true if the handlename or Registrar name is taken, else false
     */
     function isHandleNameTakenByAddress(string calldata _handleName, address _address)
     external
@@ -376,7 +376,7 @@ contract RegistrarStorage is checkingContract {
     * @dev Update the data for the active auction
     * @param _handleNameOwner address of a handlename owner
     * @param _handleName handlename in string
-    * @returns true
+    * @return true
     */
     function auctionInProcess (address _handleNameOwner, string calldata _handleName) external auctionContract returns (bool) {
 
@@ -395,7 +395,7 @@ contract RegistrarStorage is checkingContract {
     * @param _indexnumber index of the new coin
     * @param _blockchainName blockchain name of the coin
     * @param _aliasName alias name of the coin
-    * @returns true
+    * @return true
     */
     function addCoin(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName, address _registrar) external onlyMainContract returns (bool){
 
@@ -415,7 +415,7 @@ contract RegistrarStorage is checkingContract {
     /**
     * @dev Get the coin name by passing in the index number
     * @param _index index of the coin
-    * @returns coin name in string
+    * @return coin name in string
     */
     function getCoinAliasNameByIndex (uint256 _index) external view returns (string memory) {
 
@@ -429,7 +429,7 @@ contract RegistrarStorage is checkingContract {
     /**
     * @dev Check if a particular coin is mapped
     * @param _blockchainName string of a blockchain name
-    * @returns true if registered, else false
+    * @return true if registered, else false
     */
     function isCoinRegistered (string calldata _blockchainName) external view returns (bool) {
 
@@ -445,7 +445,7 @@ contract RegistrarStorage is checkingContract {
     * @param _index index of the blockchain
     * @param _address address of the coin
     * @param _registrar address of the Registrar
-    * @returns true
+    * @return true
     */
     function registerCoinAddress(address _userAddress,uint256 _index, string calldata _address, address _registrar) external onlyMainContract returns (bool){
 
@@ -465,7 +465,7 @@ contract RegistrarStorage is checkingContract {
     * @param _index index of the blockchain
     * @param _newAddress new address of coin to be updated
     * @param _registrar address of the Registrar
-    * @returns true
+    * @return true
     */
     function updateCoinAddress(address _userAddress,uint256 _index, string calldata _newAddress, address _registrar) external onlyMainContract returns (bool){
 
@@ -486,7 +486,7 @@ contract RegistrarStorage is checkingContract {
     * @dev Resolve the address of a coin from user's handlename and index
     * @param _handleName user handlename string
     * @param _index index of the blockchain address mapping
-    * @returns user's coin address
+    * @return user's coin address
     */
     function resolveCoinAddress (string calldata _handleName, uint256 _index) external view returns (string memory) {
 
@@ -499,7 +499,7 @@ contract RegistrarStorage is checkingContract {
     * @dev resolve the user's handlename from their coin address and index number
     * @param _address user's coin address
     * @param _index index of the blockchain
-    * @returns handlename of the user
+    * @return handlename of the user
     */
     function resolveCoinHandleName (string calldata _address, uint256 _index) external view returns (string memory) {
 
@@ -511,7 +511,7 @@ contract RegistrarStorage is checkingContract {
     /**
     * @dev Resolve the handlename of the user from address
     * @param _userAddress address of the user
-    * @returns handlename of the user
+    * @return handlename of the user
     */
     function resolveHandleName (address _userAddress) external view returns (string memory) {
 
