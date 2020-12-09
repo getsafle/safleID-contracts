@@ -1,36 +1,30 @@
 pragma solidity 0.5.0;
 
-
 import "./checkingContract.sol";
 
 interface RegistrarStorage {
-
     function isHandleNameTakenByAddress(string calldata, address) external view returns(bool);
     function transferhandleName (string calldata , address , address ) external returns (bool);
     function auctionInProcess (address, string calldata) external returns (bool);
 }
 
-
 contract Auction is checkingContract {
-
-    // Auction variable declaration
 
     uint8 constant MAX_REGISTRAR_NAME_LENGTH = 16;
     address public contractOwner;
     RegistrarStorage public registrarStorageContractAddress;
     mapping (address => auctionData ) public auction;
-    mapping (address => bool) public alreadyActiveAuction; 
+    mapping (address => bool) public alreadyActiveAuction;
     mapping (string => address) handleNameToAddress;
 
+    // Address of the Registrar Storage Contrat to be passed in the constructor
     constructor (RegistrarStorage _storageContract) public {
-
-        contractOwner = msg.sender ;
+        contractOwner = msg.sender;
         registrarStorageContractAddress = _storageContract;
-
     }
-    
-    struct auctionData {
 
+    // Struct to store the Auction data
+    struct auctionData {
         bool isAuctionLive;
         address payable auctionConductor;
         string handleName;
@@ -40,14 +34,18 @@ contract Auction is checkingContract {
         uint256 highestBid;
         uint256 totalBids;
         uint256 totalBidders;
-        address payable [] biddersArray;
+        address payable[] biddersArray;
         bool returnBidsOfOther;
         uint256 auctionLastFor;
         bool handleNameTransferred;
-
-
     }
     
+    /**
+    * @dev Modifier to ensure that the auction data entered is valid
+    * @param auctioner address of the auctioner
+    * @param _handlename handlename of the user to be auctioned
+    * @param _auctionSeconds time limit for the auction in seconds
+    */
     modifier validateAuctionData (address auctioner,string memory _handleName, uint256 _auctionSeconds) {
         
         require(checkLength(_handleName) <= MAX_REGISTRAR_NAME_LENGTH,"length of a name is higher");
@@ -58,11 +56,10 @@ contract Auction is checkingContract {
 
     }
 
-
     /**
-    * @dev  to auction your handle name
-    * @param _handleName string of a user handle name
-    * @param _auctionSeconds time period for auction
+    * @dev Auction the user's handlename
+    * @param _handleName handlename of the user
+    * @param _auctionSeconds time period for auction in seconds
     */
     function auctionHandlename(string calldata _handleName, uint256 _auctionSeconds) validateAuctionData(msg.sender, _handleName, _auctionSeconds) external returns (bool) {
 
@@ -78,8 +75,9 @@ contract Auction is checkingContract {
     }
 
     /**
-    * @dev  to bid on a ongoing auction
-    * @param _handleName string of a user handle name
+    * @dev Bid for a handlename in an ongoing auction
+    * This method is payable.
+    * @param _handleName handlename of a user
     */
     function bidForHandleName(string calldata _handleName) external payable returns (bool) {
 
@@ -94,10 +92,10 @@ contract Auction is checkingContract {
 
         require(auction[auctioner].isAuctionLive,"Auction is not live");
         require(auction[auctioner].auctionConductor != msg.sender,"you cannot bid for your handle name");
-        require(bidAmount + auction[auctioner].bidRate[msg.sender]> auction[auctioner].highestBid,"bid amount should be higher then previous bid" );
-        require(now < auction[auctioner].auctionLastFor,"Auction time is completed");
+        require(bidAmount + auction[auctioner].bidRate[msg.sender]> auction[auctioner].highestBid, "bid amount should be higher then previous bid" );
+        require(now < auction[auctioner].auctionLastFor, "Auction time is completed");
 
-         if(auction[auctioner].bidRate[msg.sender]==0){
+        if(auction[auctioner].bidRate[msg.sender]==0){
 
          auction[auctioner].bidRate[msg.sender] = bidAmount;
          auction[auctioner].highestBidder[msg.sender] = auction[auctioner].bidRate[msg.sender];
@@ -107,31 +105,30 @@ contract Auction is checkingContract {
          auction[auctioner].biddersArray.push(msg.sender);
          auction[auctioner].totalBidders++;
 
-         }else {
+        } else {
              
          auction[auctioner].bidRate[msg.sender] = auction[auctioner].bidRate[msg.sender]+bidAmount;
          auction[auctioner].highestBidder[msg.sender] = auction[auctioner].bidRate[msg.sender];
          auction[auctioner].highestBid = auction[auctioner].bidRate[msg.sender];
          auction[auctioner].higestBidderAddress = msg.sender;
 
-         }
+        }
 
-         auction[auctioner].totalBids++;
+        auction[auctioner].totalBids++;
 
     }
     
     /**
-    * @dev  to return bids on a auction that is completed
+    * @dev Return the bids of other bidders except the winner
     */
-     function refundOtherBidders() external returns (bool){
+     function refundOtherBidders() external returns (bool) {
         
         require(auction[msg.sender].returnBidsOfOther ==  false);
         require(auction[msg.sender].auctionConductor == msg.sender);
-        require(auction[msg.sender].biddersArray.length > 0); //check if any bid is placed of not
+        require(auction[msg.sender].biddersArray.length > 0);
 
         for (uint i = 0; i < auction[msg.sender].biddersArray.length; i++){
-            
-            
+
             if(auction[msg.sender].biddersArray[i] != auction[msg.sender].higestBidderAddress)
             {
 
@@ -143,59 +140,58 @@ contract Auction is checkingContract {
             {
                 alreadyActiveAuction[msg.sender] = false;
             }
-            
+
         }
-        
-        auction[msg.sender].returnBidsOfOther =  true;
+
+        auction[msg.sender].returnBidsOfOther = true;
         transferHandleNameToWinner();
 
-     }
+    }
 
     /**
-    * @dev  to transfer handle name and get highest bid only called by owner of auction
+    * @dev Transfer the handlename to the winner of the Auction
+    * This method can only be called internally
     */
-     function transferHandleNameToWinner() internal returns (bool){
-        
+    function transferHandleNameToWinner() internal returns (bool){
+
         auction[msg.sender].auctionConductor.transfer(auction[msg.sender].highestBid);
         auction[msg.sender].handleNameTransferred = true;
-        require(registrarStorageContractAddress.transferhandleName(auction[msg.sender].handleName, auction[msg.sender].auctionConductor,auction[msg.sender].higestBidderAddress),"storage contract fails");
+        require(registrarStorageContractAddress.transferhandleName(auction[msg.sender].handleName, auction[msg.sender].auctionConductor,auction[msg.sender].higestBidderAddress), "storage contract fails");
 
-     }
-
+    }
 
     /**
-    * @dev  to transfer handle name directly without Auction
+    * @dev Transfer the handlename to another user
+    * @param _handleName handlename of the user to be transferred
+    * @param _newOwner address of the new owner
+    * @return true
     */
-     function directlyTransferHandleName(string calldata _handleName, address _newOwner) external returns (bool){
-     
-        require (registrarStorageContractAddress.isHandleNameTakenByAddress( _handleName, msg.sender) == true,"you are not an owner of this handle name");        
+    function directlyTransferHandleName(string calldata _handleName, address _newOwner) external returns (bool){
+
+        require (registrarStorageContractAddress.isHandleNameTakenByAddress( _handleName, msg.sender) == true, "you are not an owner of this handle name");
         require(registrarStorageContractAddress.transferhandleName(_handleName, msg.sender,_newOwner),"storage contract fails");
         return true;
-     }
+    }
 
     /**
-    * @dev  to get array of bidders of particular auction
+    * @dev Get the list of all bidders for an auction
     * @param _auctioner address of a auctioner
+    * @return array of bidders
     */
-     function arrayOfbidders (address _auctioner) external view returns (address payable[] memory){
-         
+    function arrayOfbidders (address _auctioner) external view returns (address payable[] memory){
          require(auction[_auctioner].auctionConductor != address(0x0));
          return auction[_auctioner].biddersArray;
-         
-     }
+    }
 
     /**
-    * @dev  to get bid of a participant in auction
+    * @dev Get the bid of a particular bidder for an auction
     * @param _auctioner address of a auctioner
-    * @param _bidder address of a participant
+    * @param _bidder address of a bidder
+    * @return bid of that particular bidder
     */
-
-     function getBidRate (address _auctioner, address _bidder) external view returns (uint256){
-         
-         require(auction[_auctioner].auctionConductor != address(0x0));
-         return auction[_auctioner].bidRate[_bidder];
-         
-     }
-
+    function getBidRate (address _auctioner, address _bidder) external view returns (uint256) {
+        require(auction[_auctioner].auctionConductor != address(0x0));
+        return auction[_auctioner].bidRate[_bidder];
+    }
 
 }
