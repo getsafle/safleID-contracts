@@ -60,7 +60,7 @@ contract RegistrarMain is checkingContract{
     public
 
     {
-        require(_amount >= 0);
+        require(_amount > 0);
         userHandleNameRegFees = _amount;
 
     }
@@ -74,7 +74,7 @@ contract RegistrarMain is checkingContract{
     public
 
     {
-        require(_amount >= 0);
+        require(_amount > 0);
         registrarFees = _amount;
 
     }
