@@ -121,23 +121,22 @@ contract RegistrarStorage is checkingContract {
     */
     function updateRegistrar(address _registrar, string calldata _newRegistrarName) external registrarChecks(_newRegistrarName) onlyMainContract returns (bool) {
 
-        bytes memory regNewNameBytes = bytes(_newRegistrarName);
+        bytes memory newNameBytes = bytes(_newRegistrarName);
 
         require(isAddressTaken[_registrar] == true, "Registrar should register first.");
         require(totalRegistrarUpdates[_registrar]+1 <= MAX_NAME_UPDATES, "Maximum update count reached.");
 
         registrar memory registrarObject = Registrars[_registrar];
         string memory oldName = registrarObject.registrarName;
-        bytes memory regOldNameBytes = bytes(oldName);
-        registrarNameToAddress[regOldNameBytes] = address(0x0);
+        bytes memory oldNameBytes = bytes(oldName);
+        registrarNameToAddress[oldNameBytes] = address(0x0);
 
         resolveOldRegistrarAddress[_registrar].push(bytes(Registrars[_registrar].registrarName));
         
-        Registrars[_registrar].isRegisteredRegistrar = true;
         Registrars[_registrar].registrarName = _newRegistrarName;
         Registrars[_registrar].registarAddress = _registrar;
 
-        registrarNameToAddress[regNewNameBytes] = _registrar;
+        registrarNameToAddress[newNameBytes] = _registrar;
         totalRegistrarUpdates[_registrar]++;
         return true;
 
