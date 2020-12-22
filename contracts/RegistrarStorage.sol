@@ -263,7 +263,7 @@ contract RegistrarStorage is checkingContract {
 
         auctionProcess[_oldOwner] = false;
         isAddressTaken[_newOwner] = true;
-        resolveUserAddress[_newOwner] = idBytes;
+        resolveUserAddress[_newOwner] = _inbloxId;
         return true;
 
     }
