@@ -40,13 +40,21 @@ contract RegistrarMain is checkingContract{
 
     // @dev Modifier to ensure the conditions for Registrar are met.
     modifier registrarChecks(string memory _registrarName) {
-        
+
         require(msg.value >= registrarFees, "Registration fees not matched.");
         require(isInbloxIdValid(_registrarName));
         _;
 
     }
 
+    // @dev Modifier to ensure the conditions for InbloxId registration are met.
+    modifier inbloxIdChecks(string memory _inbloxId) {
+
+        require(msg.value >= inbloxIdFees, "Registration fees not matched.");
+        require(isInbloxIdValid(_inbloxId));
+        _;
+
+    }
 
     /**
     * @dev constructor of the contract
@@ -54,7 +62,7 @@ contract RegistrarMain is checkingContract{
     */
     constructor (address payable _walletAddress) public {
 
-        require(_walletAddress != address(0));
+        require(_walletAddress != address(0), "Please provide a valid wallet address.");
         contractOwner = msg.sender;
         walletAddress = _walletAddress;
 
@@ -65,11 +73,9 @@ contract RegistrarMain is checkingContract{
     * Only the contract owner can call this function
     * @param _amount fees in wei
     */
-    function setInbloxIdFees(uint256 _amount) onlyOwner
-    public
-
+    function setInbloxIdFees(uint256 _amount) public onlyOwner
     {
-        require(_amount >= 0);
+        require(_amount >= 0, "Please set a fees for InbloxID registration.");
         inbloxIdFees = _amount;
 
     }
@@ -79,11 +85,9 @@ contract RegistrarMain is checkingContract{
     * Only the contract owner can call this function
     * @param _amount fees in wei
     */
-    function setRegistrarFees(uint256 _amount) onlyOwner
-    public
-
+    function setRegistrarFees(uint256 _amount) public onlyOwner
     {
-        require(_amount >= 0);
+        require(_amount >= 0, "Please set a fees for Registrar registration.");
         registrarFees = _amount;
 
     }
@@ -111,7 +115,10 @@ contract RegistrarMain is checkingContract{
     * This method is payable.
     * @param _registrarName Registrar name in string
     */
-    function registerRegistrar(string memory _registrarName) public registrarChecks(_registrarName) checkRegistrationStatus checkStorageContractAddress payable {
+    function registerRegistrar(string memory _registrarName) public registrarChecks(_registrarName)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable {
 
         string memory lower = toLower(_registrarName);
         walletAddress.transfer(msg.value);
@@ -125,7 +132,12 @@ contract RegistrarMain is checkingContract{
     * Can be called only if inbloxId registration is not paused and storage contract is set
     * @param _registrarName string to be taken as a New name of Ragistrar
     */
-    function updateRegistrar(string memory _registrarName) public registrarChecks(_registrarName) checkRegistrationStatus checkStorageContractAddress payable {
+    function updateRegistrar(string memory _registrarName)
+    public
+    registrarChecks(_registrarName)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable {
 
         string memory lower = toLower(_registrarName);
         walletAddress.transfer(msg.value);
@@ -140,16 +152,17 @@ contract RegistrarMain is checkingContract{
     * @param _userAddress address of the user
     * @param _inbloxId inbloxId of the user
     */
-    function registerInbloxId(address _userAddress, string memory _inbloxId) checkRegistrationStatus checkStorageContractAddress payable
+    function registerInbloxId(address _userAddress, string memory _inbloxId) 
     public
-
+    inbloxIdChecks(_inbloxId)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable
     {
 
-        require(msg.value >= inbloxIdFees,"Fees doesn't Match");
-        require(isInbloxIdValid(_inbloxId));
-        string memory VNinLowerCase = toLower(_inbloxId);
+        string memory lower = toLower(_inbloxId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.registerInbloxId(msg.sender,_userAddress,VNinLowerCase),"storage error");
+        require(registrarStorageContractAddress.registerInbloxId(msg.sender,_userAddress,lower), "Storage contract error.");
 
     }
 
@@ -160,16 +173,17 @@ contract RegistrarMain is checkingContract{
     * @param _userAddress address of a user
     * @param _newInbloxId new inbloxId of the user to update
     */
-    function updateInbloxId(address _userAddress, string memory _newInbloxId) checkRegistrationStatus checkStorageContractAddress payable
+    function updateInbloxId(address _userAddress, string memory _newInbloxId)
     public
-
+    inbloxIdChecks(_newInbloxId)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable
     {
 
-        require(msg.value >= inbloxIdFees,"registration fees not matched");
-        require(isInbloxIdValid(_newInbloxId));
-        string memory VNinLowerCase = toLower(_newInbloxId);
+        string memory lower = toLower(_newInbloxId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.updateInbloxId(msg.sender,_userAddress,VNinLowerCase),"Storage contract fails");
+        require(registrarStorageContractAddress.updateInbloxId(msg.sender,_userAddress,lower), "Storage contract error.");
 
     }
 
@@ -215,7 +229,7 @@ contract RegistrarMain is checkingContract{
         string memory lowerBlockchainName = toLower(_blockchainName);
         string memory lowerAliasName = toLower(_aliasName);
         require(_indexnumber != 0);
-        require(checkAlphaNumeric(lowerBlockchainName) && checkAlphaNumeric(lowerAliasName),"only alphanumeric allowed in blockchain name and alias name");
+        require(checkAlphaNumeric(lowerBlockchainName) && checkAlphaNumeric(lowerAliasName), "Only alphanumeric allowed in blockchain name and alias name");
         require(registrarStorageContractAddress.addCoin(_indexnumber,lowerBlockchainName,lowerAliasName, msg.sender),"Storage contract fails");
         return true;
 
