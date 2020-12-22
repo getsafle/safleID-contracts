@@ -4,6 +4,13 @@ import "./checkingContract.sol";
 
 contract RegistrarStorage is checkingContract {
 
+    // Struct to store the Registrar data
+    struct registrar {
+        bool isRegisteredRegistrar;
+        string registrarName;
+        address registarAddress;
+    }
+
     // State variables to keep track of counts
     uint8 constant MAX_NAME_UPDATES = 2;
     uint256 public totalRegistrars;
@@ -16,8 +23,8 @@ contract RegistrarStorage is checkingContract {
     address public mainContract;
     address public auctionContractAddress;
 
+    // Mappings to manage the Registrar functionalities
     mapping( address => bytes[] ) public resolveOldRegistrarAddress;
-
     mapping( bytes => address )  registrarNameToAddress;
     mapping (address => registrar) public Registrars;
 
@@ -30,13 +37,6 @@ contract RegistrarStorage is checkingContract {
     mapping (string => mapping (uint256 => string)) resolveInbloxIdFromCoinAddress;
     mapping (string => mapping (uint256 => string)) inbloxIdToCoinAddress;
 
-    // Struct to store the Registrar data
-    struct registrar {
-        bool isRegisteredRegistrar;
-        string registrarName;
-        address registarAddress;
-    }
-
     // Modifier to ensure the function caller is the contract owner
     modifier onlyOwner () {
         require(msg.sender == contractOwner);
@@ -46,6 +46,15 @@ contract RegistrarStorage is checkingContract {
     // Modifier to ensure the function caller is the Registrar Main Contract
     modifier onlyMainContract () {
         require(msg.sender == mainContract);
+        _;
+    }
+
+    //Modifier to ensure that necessary conditions are satified before registering or updating Registrar
+    modifier registrarChecks (string memory _registrarName) {
+        bytes memory regNameBytes = bytes(_registrarName);
+
+        require(registrarNameToAddress[regNameBytes] == address(0x0), "Registrar name is already taken.");
+        require(resolveAddressFromInbloxId[regNameBytes] == address(0x0), "This Registrar name is already registered as an InbloxID.");
         _;
     }
 
@@ -86,14 +95,11 @@ contract RegistrarStorage is checkingContract {
     * @param _registrarName Registrar name
     * @return true
     */
-    function registerRegistrar(address _registrar, string calldata _registrarName) external onlyMainContract returns(bool)  {
+    function registerRegistrar(address _registrar, string calldata _registrarName) external registrarChecks(_registrarName) onlyMainContract returns(bool)  {
 
         bytes memory regNameBytes = bytes(_registrarName);
 
-        require(Registrars[_registrar].registarAddress == address(0x0), "Registrar registered");
-        require(registrarNameToAddress[regNameBytes] == address(0x0), "Registrar name is already taken");
-        require(isAddressTaken[_registrar] == false, "Registrar is already validated by this address");
-        require(resolveAddressFromInbloxId[regNameBytes] == address(0x0), "This Registrar name is already registered as an InbloxID.");
+        require(isAddressTaken[_registrar] == false, "This address is already registered.");
 
         Registrars[_registrar].isRegisteredRegistrar = true;
         Registrars[_registrar].registrarName = _registrarName;
@@ -104,24 +110,21 @@ contract RegistrarStorage is checkingContract {
         totalRegistrars++;
 
         return true;
-
     }
 
     /**
     * @dev Update an already registered Registrar
     * Only the Main contract can call this function
     * @param _registrar address of the Registrar
-    * @param _registrarNewName new name of the Registrar to update
+    * @param _newRegistrarName new name of the Registrar to update
     * @return true
     */
-    function updateRegistrar(address _registrar, string calldata _registrarNewName) external onlyMainContract returns (bool) {
+    function updateRegistrar(address _registrar, string calldata _newRegistrarName) external registrarChecks(_newRegistrarName) onlyMainContract returns (bool) {
 
-        bytes memory regNewNameBytes = bytes(_registrarNewName);
+        bytes memory regNewNameBytes = bytes(_newRegistrarName);
 
-        require(Registrars[_registrar].registarAddress != address(0x0), "Registrar should register first");
-        require(registrarNameToAddress[regNewNameBytes] == address(0x0), "Registrar name is already taken");
-        require(totalRegistrarUpdates[_registrar]+1 <= MAX_NAME_UPDATES, "You have no more update count left");
-        require(resolveAddressFromInbloxId[regNewNameBytes] == address(0x0), "This Registrar name is already registered as an InbloxID.");
+        require(isAddressTaken[_registrar] == true, "Registrar should register first.");
+        require(totalRegistrarUpdates[_registrar]+1 <= MAX_NAME_UPDATES, "Maximum update count reached.");
 
         registrar memory registrarObject = Registrars[_registrar];
         string memory oldName = registrarObject.registrarName;
@@ -131,7 +134,7 @@ contract RegistrarStorage is checkingContract {
         resolveOldRegistrarAddress[_registrar].push(bytes(Registrars[_registrar].registrarName));
         
         Registrars[_registrar].isRegisteredRegistrar = true;
-        Registrars[_registrar].registrarName = _registrarNewName;
+        Registrars[_registrar].registrarName = _newRegistrarName;
         Registrars[_registrar].registarAddress = _registrar;
 
         registrarNameToAddress[regNewNameBytes] = _registrar;
@@ -142,36 +145,15 @@ contract RegistrarStorage is checkingContract {
 
     /**
     * @dev Resolve the registrar address from registrar name
-    * @param _inbloxId inbloxId of the registrar
+    * @param _name inbloxId of the registrar
     * @return registrar address
     */
-    function resolveRegistrarName(string calldata _inbloxId)
-    external
-    view
-    returns(address)
+    function resolveRegistrarName(string calldata _name) external view returns(address) {
+        bytes memory regNameBytes = bytes(_name);
 
-    {
-        bytes memory regNameBytes = bytes(_inbloxId);
-        require(bytes(_inbloxId).length != 0, "Resolver : InbloxId should not be empty.");
         require(registrarNameToAddress[regNameBytes] != address(0x0), "Resolver : Registrar is not yet registered for this InbloxID.");
+
         return registrarNameToAddress[regNameBytes];
-    }
-
-    /**
-    * @dev Resolve the registrar name from registrar address
-    * @param _registrar address of the Registrar
-    * @return registrar name
-    */
-    function resolveRegistrarAddress(address  _registrar)
-    external
-    view
-    returns(string memory)
-
-    {
-
-        require(Registrars[_registrar].registarAddress != address(0x0),"Registrar not registered");
-        return Registrars[_registrar].registrarName;
-
     }
 
     /**
