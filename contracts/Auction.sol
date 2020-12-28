@@ -27,7 +27,6 @@ contract Auction is checkingContract {
         address payable auctionConductor;
         string inbloxId;
         mapping (address => uint256) bidRate;
-        mapping (address => uint256) highestBidder;
         address payable higestBidderAddress;
         uint256 highestBid;
         uint256 totalBids;
@@ -92,25 +91,25 @@ contract Auction is checkingContract {
 
         address auctioner = inbloxIdToAddress[lower];
 
-        require(auction[auctioner].isAuctionLive,"Auction is not live");
-        require(auction[auctioner].auctionConductor != msg.sender,"you cannot bid for your InbloxId");
-        require(bidAmount + auction[auctioner].bidRate[msg.sender]> auction[auctioner].highestBid, "bid amount should be higher then previous bid" );
+        require(auction[auctioner].isAuctionLive, "Auction is not live");
+        require(auction[auctioner].auctionConductor != msg.sender, "You cannot bid for your InbloxId");
+        require(bidAmount + auction[auctioner].bidRate[msg.sender]> auction[auctioner].highestBid, "Bid amount should be greater than the current bidrate." );
         require(now < auction[auctioner].auctionLastFor, "Auction time is completed");
 
-        auction[auctioner].bidRate[msg.sender] = auction[auctioner].bidRate[msg.sender]+bidAmount;
-        auction[auctioner].highestBidder[msg.sender] = auction[auctioner].bidRate[msg.sender];
-        auction[auctioner].higestBidderAddress = msg.sender;
-
         if(auction[auctioner].bidRate[msg.sender]==0){
-
-         auction[auctioner].highestBid = bidAmount;
-         auction[auctioner].biddersArray.push(msg.sender);
-         auction[auctioner].totalBidders++;
+            
+            auction[auctioner].bidRate[msg.sender] = bidAmount;
+            auction[auctioner].highestBid = bidAmount;
+            auction[auctioner].biddersArray.push(msg.sender);
+            auction[auctioner].totalBidders++;
 
         } else {
-         auction[auctioner].highestBid = auction[auctioner].bidRate[msg.sender];
+            
+            auction[auctioner].bidRate[msg.sender] = auction[auctioner].bidRate[msg.sender]+bidAmount;
+            auction[auctioner].highestBid = auction[auctioner].bidRate[msg.sender];
         }
 
+        auction[auctioner].higestBidderAddress = msg.sender;
         auction[auctioner].totalBids++;
 
     }
@@ -126,9 +125,11 @@ contract Auction is checkingContract {
 
         for (uint i = 0; i < auction[msg.sender].biddersArray.length; i++){
 
-            uint256 bidderAmount = auction[msg.sender].bidRate[auction[msg.sender].biddersArray[i]];
-            auction[msg.sender].biddersArray[i].transfer(bidderAmount);
-            alreadyActiveAuction[msg.sender] = false;
+            if(auction[msg.sender].biddersArray[i] != auction[msg.sender].higestBidderAddress) {
+                uint256 bidderAmount = auction[msg.sender].bidRate[auction[msg.sender].biddersArray[i]];
+                auction[msg.sender].biddersArray[i].transfer(bidderAmount);
+                alreadyActiveAuction[msg.sender] = false;
+            }
 
         }
 
