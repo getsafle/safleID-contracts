@@ -4,29 +4,31 @@ import "./checkingContract.sol";
 
 contract RegistrarStorage is checkingContract {
 
-    uint8 constant MAX_REGISTRAR_NAME_UPDATE_ALLOW = 2;
+    // State variables to keep track of counts
+    uint8 constant MAX_NAME_UPDATES = 2;
     uint256 public totalRegistrars;
+    mapping( address => uint8 ) public totalRegistrarUpdates;
+    uint256 public totalInbloxIdRegistered;
+    mapping( address => uint8 ) public totalInbloxIDCount;
 
+    // State variables to manage contract addresses
     address public contractOwner;
     address public mainContract;
     address public auctionContractAddress;
 
-    mapping( address => uint8 ) public updateRegistrarCount;
-    mapping( address => bytes[] ) public OldRegistrarAddressToNames;
+    mapping( address => bytes[] ) public resolveOldRegistrarAddress;
 
-    mapping( bytes => address )  AllRegistrarHandleNameToAddress;
+    mapping( bytes => address )  registrarNameToAddress;
     mapping (address => registrar) public Registrars;
-    mapping(bytes => bool)  isRegistrarWithSameName;
-    mapping (address => bool) public validRegistrar;
 
+    //  Mappings to keep track of other coin address mapping and registration
     mapping (uint256 => bool ) public indexTaken;
-    mapping (string => bool) blockchainName;
+    mapping (string => bool) isCoinMapped;
     mapping (string => mapping (string => bool)) nameAndAlias;
-
     mapping (uint256 => string)  public indexOfCoin;
     mapping(uint256 => mapping (string => string)) blockchainAlias;
-    mapping (string => mapping (uint256 => string)) resolveCoinNames;
-    mapping (string => mapping (uint256 => string)) coinAddressToHandleName;
+    mapping (string => mapping (uint256 => string)) resolveInbloxIdFromCoinAddress;
+    mapping (string => mapping (uint256 => string)) inbloxIdToCoinAddress;
 
     // Struct to store the Registrar data
     struct registrar {
@@ -47,17 +49,14 @@ contract RegistrarStorage is checkingContract {
         _;
     }
 
-    uint256 public totalHandleNameRegistered;
-    mapping( address => uint8 ) public updateCount;
-    mapping( bytes => address ) handleNameToUser;
-    mapping(bytes => bool) isHandleNameRegisteredAlready;
-    mapping(address => bool) public validHandleNameAddress;
-    mapping(address => string) addressToHandleName;
-    mapping(string => bool) notAvailableHandleNames;
+    mapping( bytes => address ) resolveAddressFromInbloxId;
+    mapping(address => bool) public isAddressTaken;
+    mapping(address => string) public resolveUserAddress;
+    mapping(string => bool) unavailableInbloxIds;
     mapping(address => bool) public auctionProcess;
 
-    mapping( address => bytes[] ) public OldHandles;
-    mapping( bytes => address )  OldUserHandleNameToAddress;
+    mapping( address => bytes[] ) public resolveOldInbloxIdFromAddress;
+    mapping( bytes => address )  resolveOldInbloxID;
 
     // Modifier to ensure that the caller is the Auction Contract
     modifier auctionContract () {
@@ -89,20 +88,19 @@ contract RegistrarStorage is checkingContract {
     */
     function registerRegistrar(address _registrar, string calldata _registrarName) external onlyMainContract returns(bool)  {
 
-        bytes memory bytesVNinLowerCase = bytes(_registrarName);
+        bytes memory regNameBytes = bytes(_registrarName);
 
-        require(Registrars[_registrar].registarAddress == address(0x0), "Ragistrar registered");
-        require(isRegistrarWithSameName[bytesVNinLowerCase] == false, "Ragistrar with the same name");
-        require(validRegistrar[_registrar] == false, "Registrar is already validated by this address");
-        require(isHandleNameRegisteredAlready[bytesVNinLowerCase] == false );
+        require(Registrars[_registrar].registarAddress == address(0x0), "Registrar registered");
+        require(registrarNameToAddress[regNameBytes] == address(0x0), "Registrar name is already taken");
+        require(isAddressTaken[_registrar] == false, "Registrar is already validated by this address");
+        require(resolveAddressFromInbloxId[regNameBytes] == address(0x0), "This Registrar name is already registered as an InbloxID.");
 
         Registrars[_registrar].isRegisteredRegistrar = true;
         Registrars[_registrar].registrarName = _registrarName;
         Registrars[_registrar].registarAddress = _registrar;
 
-        isRegistrarWithSameName[bytesVNinLowerCase] = true;
-        AllRegistrarHandleNameToAddress[bytesVNinLowerCase] = _registrar;
-        validRegistrar[_registrar] = true;
+        registrarNameToAddress[regNameBytes] = _registrar;
+        isAddressTaken[_registrar] = true;
         totalRegistrars++;
 
         return true;
@@ -116,49 +114,47 @@ contract RegistrarStorage is checkingContract {
     * @param _registrarNewName new name of the Registrar to update
     * @return true
     */
-    function updateRegistrar(address _registrar,string calldata _registrarNewName) external onlyMainContract returns (bool) {
+    function updateRegistrar(address _registrar, string calldata _registrarNewName) external onlyMainContract returns (bool) {
 
-        bytes memory bytesVNinLowerCase = bytes(_registrarNewName);
+        bytes memory regNewNameBytes = bytes(_registrarNewName);
 
-        require(Registrars[_registrar].registarAddress != address(0x0), "Ragistrar should register first");
-        require(isRegistrarWithSameName[bytesVNinLowerCase] == false, "new name is already taken");
-        require(updateRegistrarCount[_registrar]+1 <= MAX_REGISTRAR_NAME_UPDATE_ALLOW,"You have no more update count left");
-        require(isHandleNameRegisteredAlready[bytesVNinLowerCase] == false );
+        require(Registrars[_registrar].registarAddress != address(0x0), "Registrar should register first");
+        require(registrarNameToAddress[regNewNameBytes] == address(0x0), "Registrar name is already taken");
+        require(totalRegistrarUpdates[_registrar]+1 <= MAX_NAME_UPDATES, "You have no more update count left");
+        require(resolveAddressFromInbloxId[regNewNameBytes] == address(0x0), "This Registrar name is already registered as an InbloxID.");
 
         registrar memory registrarObject = Registrars[_registrar];
         string memory oldName = registrarObject.registrarName;
-        bytes memory bytesVNinLowerCaseOldaName = bytes(oldName);
-        isRegistrarWithSameName[bytesVNinLowerCaseOldaName] = false;
-        AllRegistrarHandleNameToAddress[bytesVNinLowerCaseOldaName] = address(0x0);
+        bytes memory regOldNameBytes = bytes(oldName);
+        registrarNameToAddress[regOldNameBytes] = address(0x0);
 
-        OldRegistrarAddressToNames[_registrar].push(bytes(Registrars[_registrar].registrarName));
+        resolveOldRegistrarAddress[_registrar].push(bytes(Registrars[_registrar].registrarName));
         
         Registrars[_registrar].isRegisteredRegistrar = true;
         Registrars[_registrar].registrarName = _registrarNewName;
         Registrars[_registrar].registarAddress = _registrar;
 
-        isRegistrarWithSameName[bytesVNinLowerCase] = true;
-        AllRegistrarHandleNameToAddress[bytesVNinLowerCase] = _registrar;
-        updateRegistrarCount[_registrar]++;
+        registrarNameToAddress[regNewNameBytes] = _registrar;
+        totalRegistrarUpdates[_registrar]++;
         return true;
 
     }
 
     /**
     * @dev Resolve the registrar address from registrar name
-    * @param _handleName handlename of the registrar
+    * @param _inbloxId inbloxId of the registrar
     * @return registrar address
     */
-    function resolveRegistrarFromHandleNameString(string calldata _handleName)
+    function resolveRegistrarName(string calldata _inbloxId)
     external
     view
     returns(address)
 
     {
-        bytes memory bytesVNinLowerCase = bytes(_handleName);
-        require(bytes(_handleName).length != 0, "Resolver : user handle name should not be empty.");
-        require(AllRegistrarHandleNameToAddress[bytesVNinLowerCase] != address(0x0), "Resolver : Ragistrar is not yet registered for this handle name.");
-        return AllRegistrarHandleNameToAddress[bytesVNinLowerCase];
+        bytes memory regNameBytes = bytes(_inbloxId);
+        require(bytes(_inbloxId).length != 0, "Resolver : InbloxId should not be empty.");
+        require(registrarNameToAddress[regNameBytes] != address(0x0), "Resolver : Registrar is not yet registered for this InbloxID.");
+        return registrarNameToAddress[regNameBytes];
     }
 
     /**
@@ -166,143 +162,139 @@ contract RegistrarStorage is checkingContract {
     * @param _registrar address of the Registrar
     * @return registrar name
     */
-    function resolveRegistrarFromaddress(address  _registrar)
+    function resolveRegistrarAddress(address  _registrar)
     external
     view
     returns(string memory)
 
     {
 
-        require(Registrars[_registrar].registarAddress != address(0x0),"Ragistrar not registered");
+        require(Registrars[_registrar].registarAddress != address(0x0),"Registrar not registered");
         return Registrars[_registrar].registrarName;
 
     }
 
     /**
-    * @dev Register a user's address and handlename
+    * @dev Register a user's address and inbloxId
     * Only the Main contract can call this function
     * @param _registrar address of the Registrar
     * @param _userAddress address of the new user
-    * @param _handleName handlename of the new user
+    * @param _inbloxId inbloxId of the new user
     * @return true
     */
-    function setAddressAndHandleName(address _registrar, address _userAddress, string calldata _handleName)  external onlyMainContract returns(bool)
+    function registerInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)  external onlyMainContract returns(bool)
     {
 
-        bytes memory bytesUNinLowerCase = bytes(toLower(_handleName));
+        bytes memory idBytes = bytes(_inbloxId);
 
-        require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Ragistrar");
-        require(isRegistrarWithSameName[bytesUNinLowerCase] == false, "registrar with same name");
-        require(isHandleNameRegisteredAlready[bytesUNinLowerCase] == false );
-        require(validHandleNameAddress[_userAddress] == false,"Handle name already registered");
-        require(notAvailableHandleNames[_handleName] == false, "Handl name is already used once, not available now");
+        require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar");
+        require(registrarNameToAddress[idBytes] == address(0x0), "This ID is taken by a Registrar");
+        require(resolveAddressFromInbloxId[idBytes] == address(0x0), "This InbloxId is already registered.");
+        
+        require(isAddressTaken[_userAddress] == false, "InbloxID already registered");
+        require(unavailableInbloxIds[_inbloxId] == false, "InbloxId is already used once, not available now");
 
-        handleNameToUser[bytesUNinLowerCase] = _userAddress;
-        validHandleNameAddress[_userAddress] = true;
-        addressToHandleName[_userAddress] = _handleName;
-        totalHandleNameRegistered++;
-        isHandleNameRegisteredAlready[bytesUNinLowerCase] = true;
+        resolveAddressFromInbloxId[idBytes] = _userAddress;
+        isAddressTaken[_userAddress] = true;
+        resolveUserAddress[_userAddress] = _inbloxId;
+        totalInbloxIdRegistered++;
 
         return true;
 
     }
 
     /**
-    * @dev Update the handlename of an already registered user
+    * @dev Update the inbloxId of an already registered user
     * Only the Main contract can call this function
     * @param _registrar address of a Registrar
     * @param _userAddress address of the user
-    * @param _handleName new handlename of that user
+    * @param _inbloxId new inbloxId of that user
     * @return true
     */
-    function updateHandleName(address _registrar, address _userAddress, string calldata _handleName)  external onlyMainContract returns(bool)
+    function updateInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)  external onlyMainContract returns(bool)
     {
 
-        require(updateCount[_userAddress]+1 <= MAX_REGISTRAR_NAME_UPDATE_ALLOW);
+        require(totalInbloxIDCount[_userAddress]+1 <= MAX_NAME_UPDATES);
 
-        bytes memory bytesUNinLowerCase = bytes(toLower(_handleName));
+        bytes memory idBytes = bytes(_inbloxId);
 
         require(Registrars[_registrar].registarAddress != address(0x0));
-        require(isRegistrarWithSameName[bytesUNinLowerCase]== false);
-        require(validHandleNameAddress[_userAddress] == true);
-        require(isHandleNameRegisteredAlready[bytesUNinLowerCase] == false );
+        require(registrarNameToAddress[idBytes] == address(0x0), "Registrar name is already taken");
+        require(isAddressTaken[_userAddress] == true);
+        require(resolveAddressFromInbloxId[idBytes] == address(0x0), "This InbloxId is already registered.");
         require(auctionProcess[_userAddress] == false);
-        require(notAvailableHandleNames[_handleName] == false, "Handl name is already used once, not available now");
+        require(unavailableInbloxIds[_inbloxId] == false, "InbloxId is already used once, not available now");
 
-        string memory oldName = addressToHandleName[_userAddress];
-        bytes memory bytesVNinLowerCaseOldaName = bytes(oldName);
+        string memory oldName = resolveUserAddress[_userAddress];
+        bytes memory oldIdBytes = bytes(oldName);
 
-        notAvailableHandleNames[oldName] = true;
-        handleNameToUser[bytesVNinLowerCaseOldaName] = address(0x0);
-        updateOldHandleNames(_userAddress,bytesVNinLowerCaseOldaName);
-        isHandleNameRegisteredAlready[bytesVNinLowerCaseOldaName] = false;
+        unavailableInbloxIds[oldName] = true;
+        resolveAddressFromInbloxId[oldIdBytes] = address(0x0);
+        oldInbloxIds(_userAddress,oldIdBytes);
 
-        isHandleNameRegisteredAlready[bytesUNinLowerCase] = true;
-        handleNameToUser[bytesUNinLowerCase] = _userAddress;
-        addressToHandleName[_userAddress] = _handleName;
+        resolveAddressFromInbloxId[idBytes] = _userAddress;
+        resolveUserAddress[_userAddress] = _inbloxId;
 
-        updateCount[_userAddress]++;
-        totalHandleNameRegistered++;
+        totalInbloxIDCount[_userAddress]++;
+        totalInbloxIdRegistered++;
 
         return true;
     }
 
    /**
-    * @dev Transfer the handlename of a user to a new user
+    * @dev Transfer the inbloxId of a user to a new user
     * Can only be called by the Auction contract
-    * @param _handleName the handlename of the user to be trasferred
+    * @param _inbloxId the inbloxId of the user to be trasferred
     * @param _oldOwner address of the old user
     * @param _newOwner address of the new user
     * @return true
     */
-    function transferhandleName (string calldata _handleName, address _oldOwner, address _newOwner) external auctionContract returns (bool) {
+    function transferInbloxId (string calldata _inbloxId, address _oldOwner, address _newOwner) external auctionContract returns (bool) {
         
-        string memory VNinLowerCase = toLower(_handleName);
-        bytes memory bytesUNinLowerCase = bytes(toLower(VNinLowerCase));
+        bytes memory idBytes = bytes(_inbloxId);
 
-        require(validHandleNameAddress[_oldOwner] == true);
-        require(isHandleNameRegisteredAlready[bytesUNinLowerCase] == true );
+        require(isAddressTaken[_oldOwner] == true);
+        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "This InbloxId does not have an owner.");
 
-        updateOldHandleNames(_oldOwner,bytesUNinLowerCase);
-        validHandleNameAddress[_oldOwner] = false;
+        oldInbloxIds(_oldOwner,idBytes);
+        isAddressTaken[_oldOwner] = false;
 
-        handleNameToUser[bytesUNinLowerCase] = _newOwner;
+        resolveAddressFromInbloxId[idBytes] = _newOwner;
 
         auctionProcess[_oldOwner] = false;
-        validHandleNameAddress[_newOwner] = true;
-        addressToHandleName[_newOwner] = VNinLowerCase;
+        isAddressTaken[_newOwner] = true;
+        resolveUserAddress[_newOwner] = _inbloxId;
         return true;
 
     }
 
     /**
-    * @dev Update the handlename inside the array
+    * @dev Update the inbloxId inside the array
     * This function can only be called internally
     * @param _userAddress the address of the user
-    * @param _handleName the handlename to be updated in bytes
+    * @param _inbloxId the inbloxId to be updated in bytes
     */
-    function updateOldHandleNames(address _userAddress, bytes memory _handleName )
+    function oldInbloxIds(address _userAddress, bytes memory _inbloxId )
     internal
     {
-        OldHandles[_userAddress].push(_handleName);
-        OldUserHandleNameToAddress[_handleName] = _userAddress;
+        resolveOldInbloxIdFromAddress[_userAddress].push(_inbloxId);
+        resolveOldInbloxID[_inbloxId] = _userAddress;
     }
 
     /**
-    * @dev resolve the address of the user using handlename
-    * @param _handleName handlename of the user
+    * @dev resolve the address of the user using inbloxId
+    * @param _inbloxId inbloxId of the user
     * @return address associated to that particular address
     */
-    function resolveHandleNameString(string calldata _handleName)
+    function resolveInbloxId(string calldata _inbloxId)
     external
     view
     returns(address)
     {
-        string memory VNinLowerCase = toLower(_handleName);
-        bytes memory bytesVNinLowerCase = bytes(VNinLowerCase);
-        require(bytes(_handleName).length != 0, "Resolver : user handle name should not be empty.");
-        require(handleNameToUser[bytesVNinLowerCase] != address(0x0), "Resolver : user is not yet registered for this handle name.");
-        return handleNameToUser[bytesVNinLowerCase];
+        bytes memory idBytes = bytes(_inbloxId);
+        require(bytes(_inbloxId).length != 0, "Resolver : user InbloxID should not be empty.");
+        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "Resolver : User is not yet registered for this InbloxID.");
+        return resolveAddressFromInbloxId[idBytes];
     }
 
     /**
@@ -318,50 +310,20 @@ contract RegistrarStorage is checkingContract {
     }
 
     /**
-    * @dev Resolve the address from handlename or registrar name
-    * @param _handleName handlename of a user or ragistrar name
-    * @return address of the user or Registrar
-    */
-    function resolveHandleNameOrRegistrarName(string calldata _handleName)
-    external
-    view
-    returns(address)
-    {
-        string memory VNinLowerCase = toLower(_handleName);
-        bytes memory bytesVNinLowerCase = bytes(VNinLowerCase);
-        require(bytes(_handleName).length != 0, "Resolver : user handle name should not be empty.");
-
-        if(handleNameToUser[bytesVNinLowerCase] != address(0x0)) {
-
-            return handleNameToUser[bytesVNinLowerCase];
-
-        } else if(AllRegistrarHandleNameToAddress[bytesVNinLowerCase] != address(0x0))
-        {
-
-            return AllRegistrarHandleNameToAddress[bytesVNinLowerCase];
-
-        } else {
-            return address(0x0);
-        }
-
-    }
-
-    /**
-    * @dev Check if the handlename or Registrar name is taken
-    * @param _handleName handlename of a user or Registrar name
+    * @dev Check if the inbloxId or Registrar name is taken
+    * @param _inbloxId inbloxId of a user or Registrar name
     * @param _address address of a user or Registrar
-    * @return true if the handlename or Registrar name is taken, else false
+    * @return true if the inbloxId or Registrar name is taken, else false
     */
-    function isHandleNameTakenByAddress(string calldata _handleName, address _address)
+    function isInbloxIdTakenByAddress(string calldata _inbloxId, address _address)
     external
     view
     returns(bool)
     {
-        string memory VNinLowerCase = toLower(_handleName);
-        bytes memory bytesVNinLowerCase = bytes(VNinLowerCase);
-        require(bytes(_handleName).length != 0, "Resolver : user handle name should not be empty.");
+        bytes memory idBytes = bytes(_inbloxId);
+        require(bytes(_inbloxId).length != 0, "Resolver : user InbloxID should not be empty.");
 
-        if(handleNameToUser[bytesVNinLowerCase] == _address || AllRegistrarHandleNameToAddress[bytesVNinLowerCase] == _address){
+        if(resolveAddressFromInbloxId[idBytes] == _address || registrarNameToAddress[idBytes] == _address){
 
             return true;
 
@@ -374,17 +336,17 @@ contract RegistrarStorage is checkingContract {
 
     /**
     * @dev Update the data for the active auction
-    * @param _handleNameOwner address of a handlename owner
-    * @param _handleName handlename in string
+    * @param _inbloxIdOwner address of a inbloxId owner
+    * @param _inbloxId inbloxId in string
     * @return true
     */
-    function auctionInProcess (address _handleNameOwner, string calldata _handleName) external auctionContract returns (bool) {
+    function auctionInProcess (address _inbloxIdOwner, string calldata _inbloxId) external auctionContract returns (bool) {
 
-        bytes memory bytesVNinLowerCase = bytes(_handleName);
+        bytes memory idBytes = bytes(_inbloxId);
 
-        require(bytes(_handleName).length != 0, "Resolver : user handle name should not be empty.");
-        require(handleNameToUser[bytesVNinLowerCase] != address(0x0), "Resolver : User is not yet registered for this handle name.");
-        auctionProcess[_handleNameOwner] = true;
+        require(bytes(_inbloxId).length != 0, "Resolver : User InbloxID should not be empty.");
+        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "Resolver : User is not yet registered for this InbloxID.");
+        auctionProcess[_inbloxIdOwner] = true;
         return true;
 
     }
@@ -400,13 +362,13 @@ contract RegistrarStorage is checkingContract {
     function addCoin(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName, address _registrar) external onlyMainContract returns (bool){
 
         require(indexTaken[_indexnumber] == false );
-        require (blockchainName [_blockchainName] == false);
+        require (isCoinMapped [_blockchainName] == false);
         require(nameAndAlias[_blockchainName][_aliasName] == false);
-        require(Registrars[_registrar].registarAddress != address(0x0),"Invalid Ragistrar");
+        require(Registrars[_registrar].registarAddress != address(0x0),"Invalid Registrar");
 
         indexTaken[_indexnumber] = true;
         indexOfCoin[_indexnumber] = _blockchainName;
-        blockchainName[_blockchainName] = true;
+        isCoinMapped[_blockchainName] = true;
         blockchainAlias[_indexnumber][_blockchainName] = _aliasName;
         return true;
 
@@ -433,9 +395,9 @@ contract RegistrarStorage is checkingContract {
     */
     function isCoinRegistered (string calldata _blockchainName) external view returns (bool) {
 
-        string memory lowerBlockchainName = toLower(_blockchainName);
+        string memory bnameLower = toLower(_blockchainName);
 
-        return blockchainName[lowerBlockchainName];
+        return isCoinMapped[bnameLower];
     }
 
     /**
@@ -449,12 +411,12 @@ contract RegistrarStorage is checkingContract {
     */
     function registerCoinAddress(address _userAddress,uint256 _index, string calldata _address, address _registrar) external onlyMainContract returns (bool){
 
-        string memory handleName = addressToHandleName[_userAddress];
-        require(Registrars[_registrar].registarAddress != address(0x0),"Invalid Ragistrar");
+        string memory inbloxId = resolveUserAddress[_userAddress];
+        require(Registrars[_registrar].registarAddress != address(0x0),"Invalid Registrar");
         require (auctionProcess[_userAddress] == false);
         require(indexTaken[_index] == true);
-        coinAddressToHandleName[handleName][_index] = _address;
-        resolveCoinNames[_address][_index] = handleName;
+        inbloxIdToCoinAddress[inbloxId][_index] = _address;
+        resolveInbloxIdFromCoinAddress[_address][_index] = inbloxId;
         return true;
     }
 
@@ -469,55 +431,43 @@ contract RegistrarStorage is checkingContract {
     */
     function updateCoinAddress(address _userAddress,uint256 _index, string calldata _newAddress, address _registrar) external onlyMainContract returns (bool){
 
-        string memory handleName = addressToHandleName[_userAddress];
+        string memory inbloxId = resolveUserAddress[_userAddress];
         require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar");
         require (auctionProcess[_userAddress] == false);
         require(indexTaken[_index] == true);
-        string memory previousAddress = coinAddressToHandleName[handleName][_index];
+        string memory previousAddress = inbloxIdToCoinAddress[inbloxId][_index];
         require(checkLength(previousAddress) > 0);
 
-        coinAddressToHandleName[handleName][_index] = _newAddress;
-        resolveCoinNames[_newAddress][_index] = handleName;
+        inbloxIdToCoinAddress[inbloxId][_index] = _newAddress;
+        resolveInbloxIdFromCoinAddress[_newAddress][_index] = inbloxId;
         return true;
 
     }
 
     /**
-    * @dev Resolve the address of a coin from user's handlename and index
-    * @param _handleName user handlename string
+    * @dev Resolve the address of a coin from user's inbloxId and index
+    * @param _inbloxId user inbloxId string
     * @param _index index of the blockchain address mapping
     * @return user's coin address
     */
-    function resolveCoinAddress (string calldata _handleName, uint256 _index) external view returns (string memory) {
+    function resolveCoinAddress (string calldata _inbloxId, uint256 _index) external view returns (string memory) {
 
-        string memory handleName = toLower(_handleName);
+        string memory inbloxId = toLower(_inbloxId);
         require(indexTaken[_index] == true);
-        return coinAddressToHandleName[handleName][_index];
+        return inbloxIdToCoinAddress[inbloxId][_index];
     }
 
     /**
-    * @dev resolve the user's handlename from their coin address and index number
+    * @dev resolve the user's inbloxId from their coin address and index number
     * @param _address user's coin address
     * @param _index index of the blockchain
-    * @return handlename of the user
+    * @return inbloxId of the user
     */
-    function resolveCoinHandleName (string calldata _address, uint256 _index) external view returns (string memory) {
+    function resolveCoinInbloxId (string calldata _address, uint256 _index) external view returns (string memory) {
 
         string memory otherAddress = toLower(_address);
         require(indexTaken[_index] == true);
-        return resolveCoinNames[otherAddress][_index];
-    }
-
-    /**
-    * @dev Resolve the handlename of the user from address
-    * @param _userAddress address of the user
-    * @return handlename of the user
-    */
-    function resolveHandleName (address _userAddress) external view returns (string memory) {
-
-        require(_userAddress != address(0));
-        require(validHandleNameAddress[_userAddress], "Not a valid user address");
-        return addressToHandleName[_userAddress];
+        return resolveInbloxIdFromCoinAddress[otherAddress][_index];
     }
 
 }

@@ -6,16 +6,16 @@ import "./checkingContract.sol";
 contract RegistrarMain is checkingContract{
 
     uint256 public registrarFees;
-    uint256 public userHandleNameRegFees;
+    uint256 public inbloxIdFees;
     address public contractOwner;
     address payable  public  walletAddress;
     bool public storageContractAddress;
-    bool public isHandlenameRegistrationPaused;
+    bool public inbloxIdRegStatus;
 
     RegistrarStorage public registrarStorageContractAddress;
 
     // @dev Modifier to ensure the function caller is the contract owner.
-    modifier onlyContractOwner () {
+    modifier onlyOwner () {
 
         require(msg.sender == contractOwner, "msg sender is not a contract owner");
         _;
@@ -30,10 +30,10 @@ contract RegistrarMain is checkingContract{
 
     }
 
-    // @dev Modifier to ensure the handlename registration is not paused.
-    modifier checkRegistartionProcess () {
+    // @dev Modifier to ensure the inbloxId registration is not paused.
+    modifier checkRegistrationStatus () {
 
-        require(isHandlenameRegistrationPaused == false, "Handle name Registration is Paused");
+        require(inbloxIdRegStatus == false, "InbloxId Registration is Paused");
         _;
 
     }
@@ -52,16 +52,16 @@ contract RegistrarMain is checkingContract{
     }
 
     /**
-    * @dev Set handlename fees
+    * @dev Set inbloxId registration fees
     * Only the contract owner can call this function
     * @param _amount fees in wei
     */
-    function setHandleNameFees(uint256 _amount) onlyContractOwner
+    function setInbloxIdFees(uint256 _amount) onlyOwner
     public
 
     {
         require(_amount >= 0);
-        userHandleNameRegFees = _amount;
+        inbloxIdFees = _amount;
 
     }
 
@@ -70,7 +70,7 @@ contract RegistrarMain is checkingContract{
     * Only the contract owner can call this function
     * @param _amount fees in wei
     */
-    function setRegistrarFees(uint256 _amount) onlyContractOwner
+    function setRegistrarFees(uint256 _amount) onlyOwner
     public
 
     {
@@ -80,16 +80,16 @@ contract RegistrarMain is checkingContract{
     }
 
     /**
-    * @dev Pause and resume the handlename registration
+    * @dev Pause and resume the inbloxId registration
     * Only the contract owner can call this function
     * @return True if paused, else false.
     */
-    function stopOrRestartRegistration () external onlyContractOwner returns (bool){
+    function toggleRegistrationStatus () external onlyOwner returns (bool){
 
-    if(isHandlenameRegistrationPaused == false){
-        isHandlenameRegistrationPaused = true;
+    if(inbloxIdRegStatus == false){
+        inbloxIdRegStatus = true;
     }else{
-        isHandlenameRegistrationPaused = false;
+        inbloxIdRegStatus = false;
     }
      return true;
 
@@ -98,17 +98,17 @@ contract RegistrarMain is checkingContract{
 
     /**
     * @dev Register a new Registrar
-    * Can be called only if handlename registration is not paused and storage contract is set
+    * Can be called only if inbloxId registration is not paused and storage contract is set
     * This method is payable.
     * @param _registrarName Registrar name in string
     */
-    function addRegistrar(string memory _registrarName)  checkRegistartionProcess checkStorageContractAddress payable
+    function registerRegistrar(string memory _registrarName)  checkRegistrationStatus checkStorageContractAddress payable
     public
 
     {
 
         require(msg.value >= registrarFees," registration fees not matched");
-        require(isHandleNameValid(_registrarName));
+        require(isInbloxIdValid(_registrarName));
         string memory VNinLowerCase = toLower(_registrarName);
         walletAddress.transfer(msg.value);
         require(registrarStorageContractAddress.registerRegistrar(msg.sender,VNinLowerCase),"storage address error");
@@ -116,38 +116,38 @@ contract RegistrarMain is checkingContract{
     }
 
     /**
-    * @dev Register a user's handlename
-    * Can be called only if handlename registration is not paused and storage contract is set
+    * @dev Register a user's inbloxId
+    * Can be called only if inbloxId registration is not paused and storage contract is set
     * This method is payable.
     * @param _userAddress address of the user
-    * @param _handleName handlename of the user
+    * @param _inbloxId inbloxId of the user
     */
-    function addHandleName(address _userAddress, string memory _handleName) checkRegistartionProcess checkStorageContractAddress payable
+    function registerInbloxId(address _userAddress, string memory _inbloxId) checkRegistrationStatus checkStorageContractAddress payable
     public
 
     {
 
-        require(msg.value >= userHandleNameRegFees,"Fees doesn't Match");
-        require(isHandleNameValid(_handleName));
-        string memory VNinLowerCase = toLower(_handleName);
+        require(msg.value >= inbloxIdFees,"Fees doesn't Match");
+        require(isInbloxIdValid(_inbloxId));
+        string memory VNinLowerCase = toLower(_inbloxId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.setAddressAndHandleName(msg.sender,_userAddress,VNinLowerCase),"storage error");        
+        require(registrarStorageContractAddress.registerInbloxId(msg.sender,_userAddress,VNinLowerCase),"storage error");        
 
     }
 
     /**
     * @dev Update an already registered Registrar
     * This method is payable.
-    * Can be called only if handlename registration is not paused and storage contract is set
+    * Can be called only if inbloxId registration is not paused and storage contract is set
     * @param _registrarName string to be taken as a New name of Ragistrar
     */
-    function updateRegistrar(string memory _registrarName) checkRegistartionProcess checkStorageContractAddress payable
+    function updateRegistrar(string memory _registrarName) checkRegistrationStatus checkStorageContractAddress payable
     public
 
     {
 
         require(msg.value >= registrarFees,"registration fees not matched");
-        require(isHandleNameValid(_registrarName));
+        require(isInbloxIdValid(_registrarName));
         string memory VNinLowerCase = toLower(_registrarName);
         walletAddress.transfer(msg.value);
         require(registrarStorageContractAddress.updateRegistrar(msg.sender,VNinLowerCase),"Storage contract fails");
@@ -155,22 +155,22 @@ contract RegistrarMain is checkingContract{
     }
 
     /**
-    * @dev Update the handlename of a user
-    * Can be called only if handlename registration is not paused and storage contract is set
+    * @dev Update the inbloxId of a user
+    * Can be called only if inbloxId registration is not paused and storage contract is set
     * This method is payable.
     * @param _userAddress address of a user
-    * @param _newHandleName new handlename of the user to update
+    * @param _newInbloxId new inbloxId of the user to update
     */
-    function updateHandleNameOfUser(address _userAddress, string memory _newHandleName) checkRegistartionProcess checkStorageContractAddress payable
+    function updateInbloxId(address _userAddress, string memory _newInbloxId) checkRegistrationStatus checkStorageContractAddress payable
     public
 
     {
 
-        require(msg.value >= userHandleNameRegFees,"registration fees not matched");
-        require(isHandleNameValid(_newHandleName));
-        string memory VNinLowerCase = toLower(_newHandleName);
+        require(msg.value >= inbloxIdFees,"registration fees not matched");
+        require(isInbloxIdValid(_newInbloxId));
+        string memory VNinLowerCase = toLower(_newInbloxId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.updateHandleName(msg.sender,_userAddress,VNinLowerCase),"Storage contract fails");
+        require(registrarStorageContractAddress.updateInbloxId(msg.sender,_userAddress,VNinLowerCase),"Storage contract fails");
 
     }
 
@@ -179,7 +179,7 @@ contract RegistrarMain is checkingContract{
     * Can be called only be the contract owner
     * @param _registrarStorageContract Address of the storage contract
     */
-    function setRegistrarStorageContract(RegistrarStorage _registrarStorageContract) onlyContractOwner
+    function setStorageContract(RegistrarStorage _registrarStorageContract) onlyOwner
     public
 
     {
@@ -195,7 +195,7 @@ contract RegistrarMain is checkingContract{
     * This method is payable.
     * @param _walletAddress to redirect fees
     */
-    function updateWalletAddress(address payable _walletAddress) onlyContractOwner
+    function updateWalletAddress(address payable _walletAddress) onlyOwner
     public
 
     {
@@ -252,7 +252,7 @@ contract RegistrarMain is checkingContract{
         uint8 length = checkLength(_address);
         require(_index != 0 && _userAddress != address(0));
         require(length > 0);
-        require(registrarStorageContractAddress.registerCoinAddress(_userAddress,_index,lowerAddress, msg.sender),"Storage contract fail");
+        require(registrarStorageContractAddress.updateCoinAddress(_userAddress,_index,lowerAddress, msg.sender),"Storage contract fail");
 
     }
 
