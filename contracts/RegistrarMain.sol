@@ -224,13 +224,13 @@ contract RegistrarMain is checkingContract{
     * @param _aliasName Alias name in string
     * @return true if successful, else false
     */
-   function addCoins(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName) external returns (bool){
+   function mapCoins(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName) external returns (bool){
 
         string memory lowerBlockchainName = toLower(_blockchainName);
         string memory lowerAliasName = toLower(_aliasName);
         require(_indexnumber != 0);
         require(checkAlphaNumeric(lowerBlockchainName) && checkAlphaNumeric(lowerAliasName), "Only alphanumeric allowed in blockchain name and alias name");
-        require(registrarStorageContractAddress.addCoin(_indexnumber,lowerBlockchainName,lowerAliasName, msg.sender),"Storage contract fails");
+        require(registrarStorageContractAddress.mapCoin(_indexnumber,lowerBlockchainName,lowerAliasName, msg.sender),"Storage contract fails");
         return true;
 
    }

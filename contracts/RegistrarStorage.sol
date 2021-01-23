@@ -11,6 +11,13 @@ contract RegistrarStorage is checkingContract {
         address registarAddress;
     }
 
+    // Struct to store the Other coin mapping data
+    struct otherCoin {
+        string coinName;
+        string aliasName;
+        bool isIndexMapped;
+    }
+
     // State variables to keep track of counts
     uint8 constant MAX_NAME_UPDATES = 2;
     uint256 public totalRegistrars;
@@ -28,26 +35,23 @@ contract RegistrarStorage is checkingContract {
     // Mappings to manage the Registrar functionalities
     mapping( address => bytes[] ) public resolveOldRegistrarAddress;
     mapping( bytes => address )  registrarNameToAddress;
-    mapping (address => registrar) public Registrars;
+    mapping( address => registrar ) public Registrars;
 
     // Mappings to manage the InbloxID functionalities
     mapping( bytes => address ) resolveAddressFromInbloxId;
-    mapping(address => bool) public isAddressTaken;
-    mapping(address => string) public resolveUserAddress;
-    mapping(string => bool) unavailableInbloxIds;
+    mapping( address => bool ) public isAddressTaken;
+    mapping( address => string ) public resolveUserAddress;
+    mapping( string => bool ) unavailableInbloxIds;
     mapping( address => bytes[] ) public resolveOldInbloxIdFromAddress;
     mapping( bytes => address )  resolveOldInbloxID;
 
-    //  Mappings to keep track of other coin address mapping and registration
-    mapping (uint256 => bool ) public indexTaken;
-    mapping (string => bool) isCoinMapped;
-    mapping (string => mapping (string => bool)) nameAndAlias;
-    mapping (uint256 => string)  public indexOfCoin;
-    mapping(uint256 => mapping (string => string)) blockchainAlias;
-    mapping (string => mapping (uint256 => string)) resolveInbloxIdFromCoinAddress;
-    mapping (string => mapping (uint256 => string)) inbloxIdToCoinAddress;
+    // Mappings to keep track of other coin address mapping and registration
+    mapping( uint256 => otherCoin ) public OtherCoin;
+    mapping( string => bool ) isCoinMapped;
+    mapping( string => string ) coinAddressToInbloxId;
+    mapping( string => mapping (uint256 => string) ) inbloxIdToCoinAddress;
 
-    mapping(address => bool) public auctionProcess;
+    mapping( address => bool ) public auctionProcess;
 
     // Modifier to ensure the function caller is the contract owner
     modifier onlyOwner () {
@@ -93,6 +97,16 @@ contract RegistrarStorage is checkingContract {
     modifier auctionContract () {
 
         require(msg.sender == auctionContractAddress);
+        _;
+
+    }
+
+    // Modifier to ensure that necessary conditions are satisfied before registering or updating coin address
+    modifier coinAddressCheck(address _userAddress,uint256 _index, address _registrar) {
+
+        require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar");
+        require (auctionProcess[_userAddress] == false);
+        require(OtherCoin[_index].isIndexMapped == true, "This index number is not mapped.");
         _;
 
     }
@@ -342,52 +356,24 @@ contract RegistrarStorage is checkingContract {
     * @dev Add a new coin address mapping
     * Can only be called by the Main Contract
     * @param _indexnumber index of the new coin
-    * @param _blockchainName blockchain name of the coin
+    * @param _coinName coin name of the coin
     * @param _aliasName alias name of the coin
     * @return true
     */
-    function addCoin(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName, address _registrar)
+    function mapCoin(uint256 _indexnumber, string calldata _coinName, string calldata _aliasName, address _registrar)
     external
     onlyMainContract
-    returns(bool){
+    returns(bool) {
+        require(OtherCoin[_indexnumber].isIndexMapped == false, "This index number has already been mapped.");
+        require (isCoinMapped[_coinName] == false, "This coin is already mapped.");
+        require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar.");
 
-        require(indexTaken[_indexnumber] == false );
-        require (isCoinMapped [_blockchainName] == false);
-        require(nameAndAlias[_blockchainName][_aliasName] == false);
-        require(Registrars[_registrar].registarAddress != address(0x0),"Invalid Registrar");
-
-        indexTaken[_indexnumber] = true;
-        indexOfCoin[_indexnumber] = _blockchainName;
-        isCoinMapped[_blockchainName] = true;
-        blockchainAlias[_indexnumber][_blockchainName] = _aliasName;
+        OtherCoin[_indexnumber].isIndexMapped = true;
+        OtherCoin[_indexnumber].aliasName = _aliasName;
+        OtherCoin[_indexnumber].coinName = _coinName;
+        isCoinMapped[_coinName] = true;
         return true;
 
-    }
-
-    /**
-    * @dev Get the coin name by passing in the index number
-    * @param _index index of the coin
-    * @return coin name in string
-    */
-    function getCoinAliasNameByIndex (uint256 _index) external view returns (string memory) {
-
-    require(_index != 0);
-    require (indexTaken[_index] == true);
-    string memory tempName = indexOfCoin[_index];
-    return blockchainAlias[_index][tempName];
-
-    }
-
-    /**
-    * @dev Check if a particular coin is mapped
-    * @param _blockchainName string of a blockchain name
-    * @return true if registered, else false
-    */
-    function isCoinRegistered (string calldata _blockchainName) external view returns (bool) {
-
-        string memory bnameLower = toLower(_blockchainName);
-
-        return isCoinMapped[bnameLower];
     }
 
     /**
@@ -399,14 +385,15 @@ contract RegistrarStorage is checkingContract {
     * @param _registrar address of the Registrar
     * @return true
     */
-    function registerCoinAddress(address _userAddress,uint256 _index, string calldata _address, address _registrar) external onlyMainContract returns (bool){
+    function registerCoinAddress(address _userAddress,uint256 _index, string calldata _address, address _registrar) external coinAddressCheck(_userAddress, _index, _registrar) onlyMainContract returns (bool){
+
+        require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar.");
+        require (auctionProcess[_userAddress] == false);
+        require(OtherCoin[_index].isIndexMapped == true, "This index number is not mapped.");
 
         string memory inbloxId = resolveUserAddress[_userAddress];
-        require(Registrars[_registrar].registarAddress != address(0x0),"Invalid Registrar");
-        require (auctionProcess[_userAddress] == false);
-        require(indexTaken[_index] == true);
         inbloxIdToCoinAddress[inbloxId][_index] = _address;
-        resolveInbloxIdFromCoinAddress[_address][_index] = inbloxId;
+        coinAddressToInbloxId[_address] = inbloxId;
         return true;
     }
 
@@ -419,45 +406,38 @@ contract RegistrarStorage is checkingContract {
     * @param _registrar address of the Registrar
     * @return true
     */
-    function updateCoinAddress(address _userAddress,uint256 _index, string calldata _newAddress, address _registrar) external onlyMainContract returns (bool){
+    function updateCoinAddress(address _userAddress,uint256 _index, string calldata _newAddress, address _registrar) external coinAddressCheck(_userAddress, _index, _registrar) onlyMainContract returns (bool){
 
-        string memory inbloxId = resolveUserAddress[_userAddress];
         require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar");
         require (auctionProcess[_userAddress] == false);
-        require(indexTaken[_index] == true);
+        require(OtherCoin[_index].isIndexMapped == true, "This index number is not mapped.");
+
+        string memory inbloxId = resolveUserAddress[_userAddress];
         string memory previousAddress = inbloxIdToCoinAddress[inbloxId][_index];
         require(checkLength(previousAddress) > 0);
 
         inbloxIdToCoinAddress[inbloxId][_index] = _newAddress;
-        resolveInbloxIdFromCoinAddress[_newAddress][_index] = inbloxId;
+        coinAddressToInbloxId[_newAddress] = inbloxId;
         return true;
-
     }
 
     /**
-    * @dev Resolve the address of a coin from user's inbloxId and index
-    * @param _inbloxId user inbloxId string
-    * @param _index index of the blockchain address mapping
-    * @return user's coin address
+    * @dev Get the inbloxID of the user from the coin address
+    * @param _address address of the user
+    * @return inbloxId of that particular coin address
     */
-    function resolveCoinAddress (string calldata _inbloxId, uint256 _index) external view returns (string memory) {
-
-        string memory inbloxId = toLower(_inbloxId);
-        require(indexTaken[_index] == true);
-        return inbloxIdToCoinAddress[inbloxId][_index];
+    function coinAddressToId(string calldata _address) external view returns (string memory){
+        return coinAddressToInbloxId[_address];
     }
 
     /**
-    * @dev resolve the user's inbloxId from their coin address and index number
-    * @param _address user's coin address
-    * @param _index index of the blockchain
-    * @return inbloxId of the user
+    * @dev Get the coin address of the user from the inbloxId and index number
+    * @param _inbloxId address of the user
+    * @param _index address of the user
+    * @return coin address corresponding to that inbloxId and index
     */
-    function resolveCoinInbloxId (string calldata _address, uint256 _index) external view returns (string memory) {
-
-        string memory otherAddress = toLower(_address);
-        require(indexTaken[_index] == true);
-        return resolveInbloxIdFromCoinAddress[otherAddress][_index];
+    function idToCoinAddress(string calldata _inbloxId, uint256 _index) external view returns (string memory){
+        return inbloxIdToCoinAddress[_inbloxId][_index];
     }
 
 }
