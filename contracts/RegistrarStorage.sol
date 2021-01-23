@@ -14,8 +14,10 @@ contract RegistrarStorage is checkingContract {
     // State variables to keep track of counts
     uint8 constant MAX_NAME_UPDATES = 2;
     uint256 public totalRegistrars;
-    mapping( address => uint8 ) public totalRegistrarUpdates;
     uint256 public totalInbloxIdRegistered;
+
+    // Mappings to track total updates
+    mapping( address => uint8 ) public totalRegistrarUpdates;
     mapping( address => uint8 ) public totalInbloxIDCount;
 
     // State variables to manage contract addresses
@@ -28,6 +30,14 @@ contract RegistrarStorage is checkingContract {
     mapping( bytes => address )  registrarNameToAddress;
     mapping (address => registrar) public Registrars;
 
+    // Mappings to manage the InbloxID functionalities
+    mapping( bytes => address ) resolveAddressFromInbloxId;
+    mapping(address => bool) public isAddressTaken;
+    mapping(address => string) public resolveUserAddress;
+    mapping(string => bool) unavailableInbloxIds;
+    mapping( address => bytes[] ) public resolveOldInbloxIdFromAddress;
+    mapping( bytes => address )  resolveOldInbloxID;
+
     //  Mappings to keep track of other coin address mapping and registration
     mapping (uint256 => bool ) public indexTaken;
     mapping (string => bool) isCoinMapped;
@@ -37,40 +47,54 @@ contract RegistrarStorage is checkingContract {
     mapping (string => mapping (uint256 => string)) resolveInbloxIdFromCoinAddress;
     mapping (string => mapping (uint256 => string)) inbloxIdToCoinAddress;
 
+    mapping(address => bool) public auctionProcess;
+
     // Modifier to ensure the function caller is the contract owner
     modifier onlyOwner () {
+
         require(msg.sender == contractOwner);
         _;
+    
     }
 
     // Modifier to ensure the function caller is the Registrar Main Contract
     modifier onlyMainContract () {
+    
         require(msg.sender == mainContract);
         _;
+
     }
 
     //Modifier to ensure that necessary conditions are satified before registering or updating Registrar
     modifier registrarChecks (string memory _registrarName) {
+
         bytes memory regNameBytes = bytes(_registrarName);
 
         require(registrarNameToAddress[regNameBytes] == address(0x0), "Registrar name is already taken.");
         require(resolveAddressFromInbloxId[regNameBytes] == address(0x0), "This Registrar name is already registered as an InbloxID.");
         _;
+
     }
 
-    mapping( bytes => address ) resolveAddressFromInbloxId;
-    mapping(address => bool) public isAddressTaken;
-    mapping(address => string) public resolveUserAddress;
-    mapping(string => bool) unavailableInbloxIds;
-    mapping(address => bool) public auctionProcess;
+    //Modifier to ensure that necessary conditions are satified before registering or updating InbloxID
+    modifier inbloxIdChecks (string memory _inbloxId, address _registrar) {
 
-    mapping( address => bytes[] ) public resolveOldInbloxIdFromAddress;
-    mapping( bytes => address )  resolveOldInbloxID;
+        bytes memory idBytes = bytes(_inbloxId);
+
+        require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar.");
+        require(registrarNameToAddress[idBytes] == address(0x0), "This InbloxId is taken by a Registrar.");
+        require(resolveAddressFromInbloxId[idBytes] == address(0x0), "This InbloxId is already registered.");
+        require(unavailableInbloxIds[_inbloxId] == false, "InbloxId is already used once, not available now");
+        _;
+
+    }
 
     // Modifier to ensure that the caller is the Auction Contract
     modifier auctionContract () {
+
         require(msg.sender == auctionContractAddress);
         _;
+
     }
 
     // Address of the Registrar Main Contract to be passed in the constructor
@@ -85,7 +109,7 @@ contract RegistrarStorage is checkingContract {
     * @param _mainContractAddress main contract address
     */
     function upgradeMainContractAddress (address _mainContractAddress) external onlyOwner {
-                mainContract = _mainContractAddress;
+        mainContract = _mainContractAddress;
     }
 
     /**
@@ -95,7 +119,11 @@ contract RegistrarStorage is checkingContract {
     * @param _registrarName Registrar name
     * @return true
     */
-    function registerRegistrar(address _registrar, string calldata _registrarName) external registrarChecks(_registrarName) onlyMainContract returns(bool)  {
+    function registerRegistrar(address _registrar, string calldata _registrarName)
+    external
+    registrarChecks(_registrarName)
+    onlyMainContract
+    returns(bool)  {
 
         bytes memory regNameBytes = bytes(_registrarName);
 
@@ -119,7 +147,11 @@ contract RegistrarStorage is checkingContract {
     * @param _newRegistrarName new name of the Registrar to update
     * @return true
     */
-    function updateRegistrar(address _registrar, string calldata _newRegistrarName) external registrarChecks(_newRegistrarName) onlyMainContract returns (bool) {
+    function updateRegistrar(address _registrar, string calldata _newRegistrarName)
+    external
+    registrarChecks(_newRegistrarName)
+    onlyMainContract
+    returns (bool) {
 
         bytes memory newNameBytes = bytes(_newRegistrarName);
 
@@ -163,17 +195,16 @@ contract RegistrarStorage is checkingContract {
     * @param _inbloxId inbloxId of the new user
     * @return true
     */
-    function registerInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)  external onlyMainContract returns(bool)
+    function registerInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)
+    external
+    inbloxIdChecks(_inbloxId, _registrar)
+    onlyMainContract
+    returns(bool)
     {
 
-        bytes memory idBytes = bytes(_inbloxId);
-
-        require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar");
-        require(registrarNameToAddress[idBytes] == address(0x0), "This ID is taken by a Registrar");
-        require(resolveAddressFromInbloxId[idBytes] == address(0x0), "This InbloxId is already registered.");
-        
         require(isAddressTaken[_userAddress] == false, "InbloxID already registered");
-        require(unavailableInbloxIds[_inbloxId] == false, "InbloxId is already used once, not available now");
+        
+        bytes memory idBytes = bytes(_inbloxId);
 
         resolveAddressFromInbloxId[idBytes] = _userAddress;
         isAddressTaken[_userAddress] = true;
@@ -192,19 +223,19 @@ contract RegistrarStorage is checkingContract {
     * @param _inbloxId new inbloxId of that user
     * @return true
     */
-    function updateInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)  external onlyMainContract returns(bool)
+    function updateInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)
+    external
+    inbloxIdChecks(_inbloxId, _registrar)
+    onlyMainContract
+    returns(bool)
     {
 
-        require(totalInbloxIDCount[_userAddress]+1 <= MAX_NAME_UPDATES);
+        require(totalInbloxIDCount[_userAddress]+1 <= MAX_NAME_UPDATES, "Maximum update count reached.");
+
+        require(isAddressTaken[_userAddress] == true, "InbloxID not registered.");
+        require(auctionProcess[_userAddress] == false, "InbloxId cannot be updated inbetween Auction.");
 
         bytes memory idBytes = bytes(_inbloxId);
-
-        require(Registrars[_registrar].registarAddress != address(0x0));
-        require(registrarNameToAddress[idBytes] == address(0x0), "Registrar name is already taken");
-        require(isAddressTaken[_userAddress] == true);
-        require(resolveAddressFromInbloxId[idBytes] == address(0x0), "This InbloxId is already registered.");
-        require(auctionProcess[_userAddress] == false);
-        require(unavailableInbloxIds[_inbloxId] == false, "InbloxId is already used once, not available now");
 
         string memory oldName = resolveUserAddress[_userAddress];
         bytes memory oldIdBytes = bytes(oldName);
@@ -222,6 +253,22 @@ contract RegistrarStorage is checkingContract {
         return true;
     }
 
+    /**
+    * @dev resolve the address of the user using inbloxId
+    * @param _inbloxId inbloxId of the user
+    * @return address associated to that particular address
+    */
+    function resolveInbloxId(string calldata _inbloxId)
+    external
+    view
+    returns(address)
+    {
+        bytes memory idBytes = bytes(_inbloxId);
+        require(bytes(_inbloxId).length != 0, "Resolver : user InbloxID should not be empty.");
+        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "Resolver : User is not yet registered for this InbloxID.");
+        return resolveAddressFromInbloxId[idBytes];
+    }
+
    /**
     * @dev Transfer the inbloxId of a user to a new user
     * Can only be called by the Auction contract
@@ -231,10 +278,10 @@ contract RegistrarStorage is checkingContract {
     * @return true
     */
     function transferInbloxId (string calldata _inbloxId, address _oldOwner, address _newOwner) external auctionContract returns (bool) {
-        
+
         bytes memory idBytes = bytes(_inbloxId);
 
-        require(isAddressTaken[_oldOwner] == true);
+        require(isAddressTaken[_oldOwner] == true, "You are not an owner of this inbloxId.");
         require(resolveAddressFromInbloxId[idBytes] != address(0x0), "This InbloxId does not have an owner.");
 
         oldInbloxIds(_oldOwner,idBytes);
@@ -263,22 +310,6 @@ contract RegistrarStorage is checkingContract {
     }
 
     /**
-    * @dev resolve the address of the user using inbloxId
-    * @param _inbloxId inbloxId of the user
-    * @return address associated to that particular address
-    */
-    function resolveInbloxId(string calldata _inbloxId)
-    external
-    view
-    returns(address)
-    {
-        bytes memory idBytes = bytes(_inbloxId);
-        require(bytes(_inbloxId).length != 0, "Resolver : user InbloxID should not be empty.");
-        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "Resolver : User is not yet registered for this InbloxID.");
-        return resolveAddressFromInbloxId[idBytes];
-    }
-
-    /**
     * @dev Set the auction contract address
     * This function can only be called by the contract owner
     * @param _auctionAddress address of a auction contract
@@ -288,31 +319,6 @@ contract RegistrarStorage is checkingContract {
 
        auctionContractAddress = _auctionAddress;
        return true;
-    }
-
-    /**
-    * @dev Check if the inbloxId or Registrar name is taken
-    * @param _inbloxId inbloxId of a user or Registrar name
-    * @param _address address of a user or Registrar
-    * @return true if the inbloxId or Registrar name is taken, else false
-    */
-    function isInbloxIdTakenByAddress(string calldata _inbloxId, address _address)
-    external
-    view
-    returns(bool)
-    {
-        bytes memory idBytes = bytes(_inbloxId);
-        require(bytes(_inbloxId).length != 0, "Resolver : user InbloxID should not be empty.");
-
-        if(resolveAddressFromInbloxId[idBytes] == _address || registrarNameToAddress[idBytes] == _address){
-
-            return true;
-
-        } else {
-
-            return false;
-        }
-
     }
 
     /**
@@ -340,7 +346,10 @@ contract RegistrarStorage is checkingContract {
     * @param _aliasName alias name of the coin
     * @return true
     */
-    function addCoin(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName, address _registrar) external onlyMainContract returns (bool){
+    function addCoin(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName, address _registrar)
+    external
+    onlyMainContract
+    returns(bool){
 
         require(indexTaken[_indexnumber] == false );
         require (isCoinMapped [_blockchainName] == false);
