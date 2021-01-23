@@ -38,6 +38,15 @@ contract RegistrarMain is checkingContract{
 
     }
 
+    // @dev Modifier to ensure the conditions for Registrar are met.
+    modifier registrarChecks(string memory _registrarName) {
+        
+        require(msg.value >= registrarFees, "Registration fees not matched.");
+        require(isInbloxIdValid(_registrarName));
+        _;
+
+    }
+
 
     /**
     * @dev constructor of the contract
@@ -102,16 +111,25 @@ contract RegistrarMain is checkingContract{
     * This method is payable.
     * @param _registrarName Registrar name in string
     */
-    function registerRegistrar(string memory _registrarName)  checkRegistrationStatus checkStorageContractAddress payable
-    public
+    function registerRegistrar(string memory _registrarName) public registrarChecks(_registrarName) checkRegistrationStatus checkStorageContractAddress payable {
 
-    {
-
-        require(msg.value >= registrarFees," registration fees not matched");
-        require(isInbloxIdValid(_registrarName));
-        string memory VNinLowerCase = toLower(_registrarName);
+        string memory lower = toLower(_registrarName);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.registerRegistrar(msg.sender,VNinLowerCase),"storage address error");
+        require(registrarStorageContractAddress.registerRegistrar(msg.sender, lower), "Storage contract error.");
+
+    }
+
+    /**
+    * @dev Update an already registered Registrar
+    * This method is payable.
+    * Can be called only if inbloxId registration is not paused and storage contract is set
+    * @param _registrarName string to be taken as a New name of Ragistrar
+    */
+    function updateRegistrar(string memory _registrarName) public registrarChecks(_registrarName) checkRegistrationStatus checkStorageContractAddress payable {
+
+        string memory lower = toLower(_registrarName);
+        walletAddress.transfer(msg.value);
+        require(registrarStorageContractAddress.updateRegistrar(msg.sender,lower), "Storage contract error.");
 
     }
 
@@ -131,26 +149,7 @@ contract RegistrarMain is checkingContract{
         require(isInbloxIdValid(_inbloxId));
         string memory VNinLowerCase = toLower(_inbloxId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.registerInbloxId(msg.sender,_userAddress,VNinLowerCase),"storage error");        
-
-    }
-
-    /**
-    * @dev Update an already registered Registrar
-    * This method is payable.
-    * Can be called only if inbloxId registration is not paused and storage contract is set
-    * @param _registrarName string to be taken as a New name of Ragistrar
-    */
-    function updateRegistrar(string memory _registrarName) checkRegistrationStatus checkStorageContractAddress payable
-    public
-
-    {
-
-        require(msg.value >= registrarFees,"registration fees not matched");
-        require(isInbloxIdValid(_registrarName));
-        string memory VNinLowerCase = toLower(_registrarName);
-        walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.updateRegistrar(msg.sender,VNinLowerCase),"Storage contract fails");
+        require(registrarStorageContractAddress.registerInbloxId(msg.sender,_userAddress,VNinLowerCase),"storage error");
 
     }
 
