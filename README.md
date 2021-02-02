@@ -44,12 +44,12 @@ dApps can leverage the power of a naming system to enable an overall better user
 
 | Contract Name         | Network       | Contract Address                           |
 |:---------------------:|:-------------:|:------------------------------------------:|
-| Main Contract         | Mainnet       | [0xb35090e26aa1fa295e6532544a8c152e00a60110](https://etherscan.io/address/0x4c93af25cda90ec0b2ab16ecd3acd4385c180faf) |
+| Main Contract         | Mainnet       | [0xb35090e26aa1fa295e6532544a8c152e00a60110](https://etherscan.io/address/0xb35090e26aa1fa295e6532544a8c152e00a60110) |
 |                       | Ropsten       | [0x4c93af25cda90ec0b2ab16ecd3acd4385c180faf](https://ropsten.etherscan.io/address/0x4c93af25cda90ec0b2ab16ecd3acd4385c180faf) |
 |                       | Rinkeby       | [0xb8f1fc389e640cd16d28892c39f33f1afdc01583](https://rinkeby.etherscan.io/address/0xb8f1fc389e640cd16d28892c39f33f1afdc01583) |
 |                       | Kovan         | [0xa28f80f2f0709ce796e1d17cc7381c19de41419d](https://kovan.etherscan.io/address/0xa28f80f2f0709ce796e1d17cc7381c19de41419d) |
 |                       | Goerli        | [0x856d747ce75dcbee3132a74945fbe4a8a61c067c](https://goerli.etherscan.io/address/0x856d747ce75dcbee3132a74945fbe4a8a61c067c) |
-| Storage Contract      | Mainnet       | [0x7700bd2c5e57a6765397dfc1de751eba81b6ea55](https://etherscan.io/address/0x4c93af25cda90ec0b2ab16ecd3acd4385c180faf) |
+| Storage Contract      | Mainnet       | [0x7700bd2c5e57a6765397dfc1de751eba81b6ea55](https://etherscan.io/address/0x7700bd2c5e57a6765397dfc1de751eba81b6ea55) |
 |                       | Ropsten       | [0x11ca500af3929f8cc1bab9c2d8de2c0fb4fcfe50](https://ropsten.etherscan.io/address/0x11ca500af3929f8cc1bab9c2d8de2c0fb4fcfe50) |
 |                       | Rinkeby       | [0x46e185e188b40e380806d8a55492a065e5bfd20f](https://rinkeby.etherscan.io/address/0x46e185e188b40e380806d8a55492a065e5bfd20f) |
 |                       | Kovan         | [0xb87eb51b55db3eb941e5d940a579003f700d0db1](https://kovan.etherscan.io/address/0xb87eb51b55db3eb941e5d940a579003f700d0db1) |
