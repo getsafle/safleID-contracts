@@ -3,8 +3,8 @@ pragma solidity 0.5.0;
 
 contract checkingContract {
 
-    uint8 constant MAX_INBLOXID_LENGTH = 16;
-    uint8 constant MIN_INBLOXID_LENGTH = 4;
+    uint8 constant MAX_SAFLEID_LENGTH = 16;
+    uint8 constant MIN_SAFLEID_LENGTH = 4;
 
     /**
     * @dev  check if address is of wallet or contract 
@@ -53,12 +53,12 @@ contract checkingContract {
 
     /**
     * @dev  to check if sring contain alphanumeric or not 
-    * @param inbloxId string length to be check
+    * @param safleId string length to be check
     */
 
-    function checkAlphaNumeric(string memory inbloxId) public pure returns (bool){
+    function checkAlphaNumeric(string memory safleId) public pure returns (bool){
     
-    string memory VNinLowerCase = toLower(inbloxId);
+    string memory VNinLowerCase = toLower(safleId);
     bytes memory b = bytes(VNinLowerCase);
 
     for(uint i; i<b.length; i++){
@@ -75,12 +75,12 @@ contract checkingContract {
     return true;
     }    
     
-    function isInbloxIdValid (string memory _registrarName) internal pure returns (bool){
+    function isSafleIdValid (string memory _registrarName) internal pure returns (bool){
         
         string memory VNinLowerCase = toLower(_registrarName);
         uint8 length = checkLength(_registrarName);
         require(checkAlphaNumeric(VNinLowerCase),"only alphanumeric allowed");
-        require(length <= MAX_INBLOXID_LENGTH && length >= MIN_INBLOXID_LENGTH,"InbloxId length should be between 4-16 characters");
+        require(length <= MAX_SAFLEID_LENGTH && length >= MIN_SAFLEID_LENGTH,"SafleId length should be between 4-16 characters");
         return true;
 
     }
