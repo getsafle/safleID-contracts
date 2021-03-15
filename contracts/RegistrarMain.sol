@@ -6,11 +6,11 @@ import "./checkingContract.sol";
 contract RegistrarMain is checkingContract{
 
     uint256 public registrarFees;
-    uint256 public inbloxIdFees;
+    uint256 public safleIdFees;
     address public contractOwner;
-    address payable  public  walletAddress;
+    address payable public walletAddress;
     bool public storageContractAddress;
-    bool public inbloxIdRegStatus;
+    bool public safleIdRegStatus;
 
     RegistrarStorage public registrarStorageContractAddress;
 
@@ -30,10 +30,10 @@ contract RegistrarMain is checkingContract{
 
     }
 
-    // @dev Modifier to ensure the inbloxId registration is not paused.
+    // @dev Modifier to ensure the safleId registration is not paused.
     modifier checkRegistrationStatus () {
 
-        require(inbloxIdRegStatus == false, "InbloxId Registration is Paused");
+        require(safleIdRegStatus == false, "SafleId Registration is Paused");
         _;
 
     }
@@ -42,16 +42,16 @@ contract RegistrarMain is checkingContract{
     modifier registrarChecks(string memory _registrarName) {
 
         require(msg.value >= registrarFees, "Registration fees not matched.");
-        require(isInbloxIdValid(_registrarName));
+        require(isSafleIdValid(_registrarName));
         _;
 
     }
 
-    // @dev Modifier to ensure the conditions for InbloxId registration are met.
-    modifier inbloxIdChecks(string memory _inbloxId) {
+    // @dev Modifier to ensure the conditions for SafleId registration are met.
+    modifier safleIdChecks(string memory _safleId) {
 
-        require(msg.value >= inbloxIdFees, "Registration fees not matched.");
-        require(isInbloxIdValid(_inbloxId));
+        require(msg.value >= safleIdFees, "Registration fees not matched.");
+        require(isSafleIdValid(_safleId));
         _;
 
     }
@@ -69,14 +69,14 @@ contract RegistrarMain is checkingContract{
     }
 
     /**
-    * @dev Set inbloxId registration fees
+    * @dev Set safleId registration fees
     * Only the contract owner can call this function
     * @param _amount fees in wei
     */
-    function setInbloxIdFees(uint256 _amount) public onlyOwner
+    function setSafleIdFees(uint256 _amount) public onlyOwner
     {
-        require(_amount >= 0, "Please set a fees for InbloxID registration.");
-        inbloxIdFees = _amount;
+        require(_amount >= 0, "Please set a fees for SafleID registration.");
+        safleIdFees = _amount;
 
     }
 
@@ -93,16 +93,16 @@ contract RegistrarMain is checkingContract{
     }
 
     /**
-    * @dev Pause and resume the inbloxId registration
+    * @dev Pause and resume the safleId registration
     * Only the contract owner can call this function
     * @return True if paused, else false.
     */
     function toggleRegistrationStatus () external onlyOwner returns (bool){
 
-    if(inbloxIdRegStatus == false){
-        inbloxIdRegStatus = true;
+    if(safleIdRegStatus == false){
+        safleIdRegStatus = true;
     }else{
-        inbloxIdRegStatus = false;
+        safleIdRegStatus = false;
     }
      return true;
 
@@ -111,7 +111,7 @@ contract RegistrarMain is checkingContract{
 
     /**
     * @dev Register a new Registrar
-    * Can be called only if inbloxId registration is not paused and storage contract is set
+    * Can be called only if safleId registration is not paused and storage contract is set
     * This method is payable.
     * @param _registrarName Registrar name in string
     */
@@ -129,8 +129,8 @@ contract RegistrarMain is checkingContract{
     /**
     * @dev Update an already registered Registrar
     * This method is payable.
-    * Can be called only if inbloxId registration is not paused and storage contract is set
-    * @param _registrarName string to be taken as a New name of Ragistrar
+    * Can be called only if safleId registration is not paused and storage contract is set
+    * @param _registrarName string to be taken as a New name of Registrar
     */
     function updateRegistrar(string memory _registrarName)
     public
@@ -146,44 +146,44 @@ contract RegistrarMain is checkingContract{
     }
 
     /**
-    * @dev Register a user's inbloxId
-    * Can be called only if inbloxId registration is not paused and storage contract is set
+    * @dev Register a user's safleId
+    * Can be called only if safleId registration is not paused and storage contract is set
     * This method is payable.
     * @param _userAddress address of the user
-    * @param _inbloxId inbloxId of the user
+    * @param _safleId safleId of the user
     */
-    function registerInbloxId(address _userAddress, string memory _inbloxId) 
+    function registerSafleId(address _userAddress, string memory _safleId) 
     public
-    inbloxIdChecks(_inbloxId)
+    safleIdChecks(_safleId)
     checkRegistrationStatus
     checkStorageContractAddress
     payable
     {
 
-        string memory lower = toLower(_inbloxId);
+        string memory lower = toLower(_safleId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.registerInbloxId(msg.sender,_userAddress,lower), "Storage contract error.");
+        require(registrarStorageContractAddress.registerSafleId(msg.sender,_userAddress,lower), "Storage contract error.");
 
     }
 
     /**
-    * @dev Update the inbloxId of a user
-    * Can be called only if inbloxId registration is not paused and storage contract is set
+    * @dev Update the safleId of a user
+    * Can be called only if safleId registration is not paused and storage contract is set
     * This method is payable.
     * @param _userAddress address of a user
-    * @param _newInbloxId new inbloxId of the user to update
+    * @param _newSafleId new safleId of the user to update
     */
-    function updateInbloxId(address _userAddress, string memory _newInbloxId)
+    function updateSafleId(address _userAddress, string memory _newSafleId)
     public
-    inbloxIdChecks(_newInbloxId)
+    safleIdChecks(_newSafleId)
     checkRegistrationStatus
     checkStorageContractAddress
     payable
     {
 
-        string memory lower = toLower(_newInbloxId);
+        string memory lower = toLower(_newSafleId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.updateInbloxId(msg.sender,_userAddress,lower), "Storage contract error.");
+        require(registrarStorageContractAddress.updateSafleId(msg.sender,_userAddress,lower), "Storage contract error.");
 
     }
 

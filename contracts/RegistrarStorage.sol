@@ -21,11 +21,11 @@ contract RegistrarStorage is checkingContract {
     // State variables to keep track of counts
     uint8 constant MAX_NAME_UPDATES = 2;
     uint256 public totalRegistrars;
-    uint256 public totalInbloxIdRegistered;
+    uint256 public totalSafleIdRegistered;
 
     // Mappings to track total updates
     mapping( address => uint8 ) public totalRegistrarUpdates;
-    mapping( address => uint8 ) public totalInbloxIDCount;
+    mapping( address => uint8 ) public totalSafleIDCount;
 
     // State variables to manage contract addresses
     address public contractOwner;
@@ -37,19 +37,19 @@ contract RegistrarStorage is checkingContract {
     mapping( bytes => address )  registrarNameToAddress;
     mapping( address => registrar ) public Registrars;
 
-    // Mappings to manage the InbloxID functionalities
-    mapping( bytes => address ) resolveAddressFromInbloxId;
+    // Mappings to manage the SafleID functionalities
+    mapping( bytes => address ) resolveAddressFromSafleId;
     mapping( address => bool ) public isAddressTaken;
     mapping( address => string ) public resolveUserAddress;
-    mapping( string => bool ) unavailableInbloxIds;
-    mapping( address => bytes[] ) public resolveOldInbloxIdFromAddress;
-    mapping( bytes => address )  resolveOldInbloxID;
+    mapping( string => bool ) unavailableSafleIds;
+    mapping( address => bytes[] ) public resolveOldSafleIdFromAddress;
+    mapping( bytes => address )  resolveOldSafleID;
 
     // Mappings to keep track of other coin address mapping and registration
     mapping( uint256 => otherCoin ) public OtherCoin;
     mapping( string => bool ) isCoinMapped;
-    mapping( string => string ) coinAddressToInbloxId;
-    mapping( string => mapping (uint256 => string) ) inbloxIdToCoinAddress;
+    mapping( string => string ) coinAddressToSafleId;
+    mapping( string => mapping (uint256 => string) ) safleIdToCoinAddress;
 
     mapping( address => bool ) public auctionProcess;
 
@@ -75,20 +75,20 @@ contract RegistrarStorage is checkingContract {
         bytes memory regNameBytes = bytes(_registrarName);
 
         require(registrarNameToAddress[regNameBytes] == address(0x0), "Registrar name is already taken.");
-        require(resolveAddressFromInbloxId[regNameBytes] == address(0x0), "This Registrar name is already registered as an InbloxID.");
+        require(resolveAddressFromSafleId[regNameBytes] == address(0x0), "This Registrar name is already registered as an SafleID.");
         _;
 
     }
 
-    //Modifier to ensure that necessary conditions are satified before registering or updating InbloxID
-    modifier inbloxIdChecks (string memory _inbloxId, address _registrar) {
+    //Modifier to ensure that necessary conditions are satified before registering or updating SafleID
+    modifier safleIdChecks (string memory _safleId, address _registrar) {
 
-        bytes memory idBytes = bytes(_inbloxId);
+        bytes memory idBytes = bytes(_safleId);
 
         require(Registrars[_registrar].registarAddress != address(0x0), "Invalid Registrar.");
-        require(registrarNameToAddress[idBytes] == address(0x0), "This InbloxId is taken by a Registrar.");
-        require(resolveAddressFromInbloxId[idBytes] == address(0x0), "This InbloxId is already registered.");
-        require(unavailableInbloxIds[_inbloxId] == false, "InbloxId is already used once, not available now");
+        require(registrarNameToAddress[idBytes] == address(0x0), "This SafleId is taken by a Registrar.");
+        require(resolveAddressFromSafleId[idBytes] == address(0x0), "This SafleId is already registered.");
+        require(unavailableSafleIds[_safleId] == false, "SafleId is already used once, not available now");
         _;
 
     }
@@ -190,137 +190,137 @@ contract RegistrarStorage is checkingContract {
 
     /**
     * @dev Resolve the registrar address from registrar name
-    * @param _name inbloxId of the registrar
+    * @param _name safleId of the registrar
     * @return registrar address
     */
     function resolveRegistrarName(string calldata _name) external view returns(address) {
         bytes memory regNameBytes = bytes(_name);
 
-        require(registrarNameToAddress[regNameBytes] != address(0x0), "Resolver : Registrar is not yet registered for this InbloxID.");
+        require(registrarNameToAddress[regNameBytes] != address(0x0), "Resolver : Registrar is not yet registered for this SafleID.");
 
         return registrarNameToAddress[regNameBytes];
     }
 
     /**
-    * @dev Register a user's address and inbloxId
+    * @dev Register a user's address and safleId
     * Only the Main contract can call this function
     * @param _registrar address of the Registrar
     * @param _userAddress address of the new user
-    * @param _inbloxId inbloxId of the new user
+    * @param _safleId safleId of the new user
     * @return true
     */
-    function registerInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)
+    function registerSafleId(address _registrar, address _userAddress, string calldata _safleId)
     external
-    inbloxIdChecks(_inbloxId, _registrar)
+    safleIdChecks(_safleId, _registrar)
     onlyMainContract
     returns(bool)
     {
 
-        require(isAddressTaken[_userAddress] == false, "InbloxID already registered");
+        require(isAddressTaken[_userAddress] == false, "SafleID already registered");
         
-        bytes memory idBytes = bytes(_inbloxId);
+        bytes memory idBytes = bytes(_safleId);
 
-        resolveAddressFromInbloxId[idBytes] = _userAddress;
+        resolveAddressFromSafleId[idBytes] = _userAddress;
         isAddressTaken[_userAddress] = true;
-        resolveUserAddress[_userAddress] = _inbloxId;
-        totalInbloxIdRegistered++;
+        resolveUserAddress[_userAddress] = _safleId;
+        totalSafleIdRegistered++;
 
         return true;
 
     }
 
     /**
-    * @dev Update the inbloxId of an already registered user
+    * @dev Update the safleId of an already registered user
     * Only the Main contract can call this function
     * @param _registrar address of a Registrar
     * @param _userAddress address of the user
-    * @param _inbloxId new inbloxId of that user
+    * @param _safleId new safleId of that user
     * @return true
     */
-    function updateInbloxId(address _registrar, address _userAddress, string calldata _inbloxId)
+    function updateSafleId(address _registrar, address _userAddress, string calldata _safleId)
     external
-    inbloxIdChecks(_inbloxId, _registrar)
+    safleIdChecks(_safleId, _registrar)
     onlyMainContract
     returns(bool)
     {
 
-        require(totalInbloxIDCount[_userAddress]+1 <= MAX_NAME_UPDATES, "Maximum update count reached.");
+        require(totalSafleIDCount[_userAddress]+1 <= MAX_NAME_UPDATES, "Maximum update count reached.");
 
-        require(isAddressTaken[_userAddress] == true, "InbloxID not registered.");
-        require(auctionProcess[_userAddress] == false, "InbloxId cannot be updated inbetween Auction.");
+        require(isAddressTaken[_userAddress] == true, "SafleID not registered.");
+        require(auctionProcess[_userAddress] == false, "SafleId cannot be updated inbetween Auction.");
 
-        bytes memory idBytes = bytes(_inbloxId);
+        bytes memory idBytes = bytes(_safleId);
 
         string memory oldName = resolveUserAddress[_userAddress];
         bytes memory oldIdBytes = bytes(oldName);
 
-        unavailableInbloxIds[oldName] = true;
-        resolveAddressFromInbloxId[oldIdBytes] = address(0x0);
-        oldInbloxIds(_userAddress,oldIdBytes);
+        unavailableSafleIds[oldName] = true;
+        resolveAddressFromSafleId[oldIdBytes] = address(0x0);
+        oldSafleIds(_userAddress,oldIdBytes);
 
-        resolveAddressFromInbloxId[idBytes] = _userAddress;
-        resolveUserAddress[_userAddress] = _inbloxId;
+        resolveAddressFromSafleId[idBytes] = _userAddress;
+        resolveUserAddress[_userAddress] = _safleId;
 
-        totalInbloxIDCount[_userAddress]++;
-        totalInbloxIdRegistered++;
+        totalSafleIDCount[_userAddress]++;
+        totalSafleIdRegistered++;
 
         return true;
     }
 
     /**
-    * @dev resolve the address of the user using inbloxId
-    * @param _inbloxId inbloxId of the user
+    * @dev resolve the address of the user using safleId
+    * @param _safleId safleId of the user
     * @return address associated to that particular address
     */
-    function resolveInbloxId(string calldata _inbloxId)
+    function resolveSafleId(string calldata _safleId)
     external
     view
     returns(address)
     {
-        bytes memory idBytes = bytes(_inbloxId);
-        require(bytes(_inbloxId).length != 0, "Resolver : user InbloxID should not be empty.");
-        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "Resolver : User is not yet registered for this InbloxID.");
-        return resolveAddressFromInbloxId[idBytes];
+        bytes memory idBytes = bytes(_safleId);
+        require(bytes(_safleId).length != 0, "Resolver : user SafleID should not be empty.");
+        require(resolveAddressFromSafleId[idBytes] != address(0x0), "Resolver : User is not yet registered for this SafleID.");
+        return resolveAddressFromSafleId[idBytes];
     }
 
    /**
-    * @dev Transfer the inbloxId of a user to a new user
+    * @dev Transfer the safleId of a user to a new user
     * Can only be called by the Auction contract
-    * @param _inbloxId the inbloxId of the user to be trasferred
+    * @param _safleId the safleId of the user to be trasferred
     * @param _oldOwner address of the old user
     * @param _newOwner address of the new user
     * @return true
     */
-    function transferInbloxId (string calldata _inbloxId, address _oldOwner, address _newOwner) external auctionContract returns (bool) {
+    function transferSafleId (string calldata _safleId, address _oldOwner, address _newOwner) external auctionContract returns (bool) {
 
-        bytes memory idBytes = bytes(_inbloxId);
+        bytes memory idBytes = bytes(_safleId);
 
-        require(isAddressTaken[_oldOwner] == true, "You are not an owner of this inbloxId.");
-        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "This InbloxId does not have an owner.");
+        require(isAddressTaken[_oldOwner] == true, "You are not an owner of this safleId.");
+        require(resolveAddressFromSafleId[idBytes] != address(0x0), "This SafleId does not have an owner.");
 
-        oldInbloxIds(_oldOwner,idBytes);
+        oldSafleIds(_oldOwner,idBytes);
         isAddressTaken[_oldOwner] = false;
 
-        resolveAddressFromInbloxId[idBytes] = _newOwner;
+        resolveAddressFromSafleId[idBytes] = _newOwner;
 
         auctionProcess[_oldOwner] = false;
         isAddressTaken[_newOwner] = true;
-        resolveUserAddress[_newOwner] = _inbloxId;
+        resolveUserAddress[_newOwner] = _safleId;
         return true;
 
     }
 
     /**
-    * @dev Update the inbloxId inside the array
+    * @dev Update the safleId inside the array
     * This function can only be called internally
     * @param _userAddress the address of the user
-    * @param _inbloxId the inbloxId to be updated in bytes
+    * @param _safleId the safleId to be updated in bytes
     */
-    function oldInbloxIds(address _userAddress, bytes memory _inbloxId )
+    function oldSafleIds(address _userAddress, bytes memory _safleId )
     internal
     {
-        resolveOldInbloxIdFromAddress[_userAddress].push(_inbloxId);
-        resolveOldInbloxID[_inbloxId] = _userAddress;
+        resolveOldSafleIdFromAddress[_userAddress].push(_safleId);
+        resolveOldSafleID[_safleId] = _userAddress;
     }
 
     /**
@@ -337,17 +337,17 @@ contract RegistrarStorage is checkingContract {
 
     /**
     * @dev Update the data for the active auction
-    * @param _inbloxIdOwner address of a inbloxId owner
-    * @param _inbloxId inbloxId in string
+    * @param _safleIdOwner address of a safleId owner
+    * @param _safleId safleId in string
     * @return true
     */
-    function auctionInProcess (address _inbloxIdOwner, string calldata _inbloxId) external auctionContract returns (bool) {
+    function auctionInProcess (address _safleIdOwner, string calldata _safleId) external auctionContract returns (bool) {
 
-        bytes memory idBytes = bytes(_inbloxId);
+        bytes memory idBytes = bytes(_safleId);
 
-        require(bytes(_inbloxId).length != 0, "Resolver : User InbloxID should not be empty.");
-        require(resolveAddressFromInbloxId[idBytes] != address(0x0), "Resolver : User is not yet registered for this InbloxID.");
-        auctionProcess[_inbloxIdOwner] = true;
+        require(bytes(_safleId).length != 0, "Resolver : User SafleID should not be empty.");
+        require(resolveAddressFromSafleId[idBytes] != address(0x0), "Resolver : User is not yet registered for this SafleID.");
+        auctionProcess[_safleIdOwner] = true;
         return true;
 
     }
@@ -391,9 +391,9 @@ contract RegistrarStorage is checkingContract {
         require (auctionProcess[_userAddress] == false);
         require(OtherCoin[_index].isIndexMapped == true, "This index number is not mapped.");
 
-        string memory inbloxId = resolveUserAddress[_userAddress];
-        inbloxIdToCoinAddress[inbloxId][_index] = _address;
-        coinAddressToInbloxId[_address] = inbloxId;
+        string memory safleId = resolveUserAddress[_userAddress];
+        safleIdToCoinAddress[safleId][_index] = _address;
+        coinAddressToSafleId[_address] = safleId;
         return true;
     }
 
@@ -412,32 +412,32 @@ contract RegistrarStorage is checkingContract {
         require (auctionProcess[_userAddress] == false);
         require(OtherCoin[_index].isIndexMapped == true, "This index number is not mapped.");
 
-        string memory inbloxId = resolveUserAddress[_userAddress];
-        string memory previousAddress = inbloxIdToCoinAddress[inbloxId][_index];
+        string memory safleId = resolveUserAddress[_userAddress];
+        string memory previousAddress = safleIdToCoinAddress[safleId][_index];
         require(checkLength(previousAddress) > 0);
 
-        inbloxIdToCoinAddress[inbloxId][_index] = _newAddress;
-        coinAddressToInbloxId[_newAddress] = inbloxId;
+        safleIdToCoinAddress[safleId][_index] = _newAddress;
+        coinAddressToSafleId[_newAddress] = safleId;
         return true;
     }
 
     /**
-    * @dev Get the inbloxID of the user from the coin address
+    * @dev Get the safleID of the user from the coin address
     * @param _address address of the user
-    * @return inbloxId of that particular coin address
+    * @return safleId of that particular coin address
     */
     function coinAddressToId(string calldata _address) external view returns (string memory){
-        return coinAddressToInbloxId[_address];
+        return coinAddressToSafleId[_address];
     }
 
     /**
-    * @dev Get the coin address of the user from the inbloxId and index number
-    * @param _inbloxId address of the user
+    * @dev Get the coin address of the user from the safleId and index number
+    * @param _safleId address of the user
     * @param _index address of the user
-    * @return coin address corresponding to that inbloxId and index
+    * @return coin address corresponding to that safleId and index
     */
-    function idToCoinAddress(string calldata _inbloxId, uint256 _index) external view returns (string memory){
-        return inbloxIdToCoinAddress[_inbloxId][_index];
+    function idToCoinAddress(string calldata _safleId, uint256 _index) external view returns (string memory){
+        return safleIdToCoinAddress[_safleId][_index];
     }
 
 }

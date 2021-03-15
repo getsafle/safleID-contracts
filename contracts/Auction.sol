@@ -3,8 +3,8 @@ pragma solidity 0.5.0;
 import "./checkingContract.sol";
 
 interface RegistrarStorage {
-    function resolveInbloxId(string calldata) external view returns(address);
-    function transferInbloxId (string calldata , address , address ) external returns (bool);
+    function resolveSafleId(string calldata) external view returns(address);
+    function transferSafleId (string calldata , address , address ) external returns (bool);
     function auctionInProcess (address, string calldata) external returns (bool);
 }
 
@@ -19,13 +19,13 @@ contract Auction is checkingContract {
     // State variables to for auction details
     mapping (address => auctionData ) public auction;
     mapping (address => bool) public alreadyActiveAuction;
-    mapping (string => address) inbloxIdToAddress;
+    mapping (string => address) safleIdToAddress;
 
     // Struct to store the Auction data
     struct auctionData {
         bool isAuctionLive;
         address payable auctionConductor;
-        string inbloxId;
+        string safleId;
         mapping (address => uint256) bidRate;
         address payable higestBidderAddress;
         uint256 highestBid;
@@ -34,7 +34,7 @@ contract Auction is checkingContract {
         address payable[] biddersArray;
         bool returnBidsOfOther;
         uint256 auctionLastFor;
-        bool inbloxIdTransferred;
+        bool safleIdTransferred;
     }
 
     // Address of the Registrar Storage Contrat to be passed in the constructor
@@ -45,54 +45,54 @@ contract Auction is checkingContract {
     
     /**
     * @dev Modifier to ensure that the auction data entered is valid
-    * @param _inbloxId inbloxId of the user to be auctioned
+    * @param _safleId safleId of the user to be auctioned
     * @param _auctionSeconds time limit for the auction in seconds
     */
-    modifier validateAuctionData (string memory _inbloxId, uint256 _auctionSeconds) {
+    modifier validateAuctionData (string memory _safleId, uint256 _auctionSeconds) {
         
-        require(checkLength(_inbloxId) <= MAX_NAME_LENGTH, "Length of the inbloxId should be betweeb 4-16 characters.");
+        require(checkLength(_safleId) <= MAX_NAME_LENGTH, "Length of the safleId should be betweeb 4-16 characters.");
         require(_auctionSeconds > 300 && _auctionSeconds < 7776000, "Auction time should be in between 330 to 7776000 seconds.");
         require(alreadyActiveAuction[msg.sender]==false, "Auction is already in process by this user.");
-        require (storageContract.resolveInbloxId( _inbloxId) == msg.sender, "You are not an owner of this InbloxId.");
+        require (storageContract.resolveSafleId( _safleId) == msg.sender, "You are not an owner of this SafleId.");
         _;
 
     }
 
     /**
-    * @dev Auction the user's inbloxId
-    * @param _inbloxId inbloxId of the user
+    * @dev Auction the user's safleId
+    * @param _safleId safleId of the user
     * @param _auctionSeconds time period for auction in seconds
     */
-    function auctionInbloxId(string calldata _inbloxId, uint256 _auctionSeconds) validateAuctionData(_inbloxId, _auctionSeconds) external returns (bool) {
+    function auctionSafleId(string calldata _safleId, uint256 _auctionSeconds) validateAuctionData(_safleId, _auctionSeconds) external returns (bool) {
 
-        string memory lower = toLower(_inbloxId);
+        string memory lower = toLower(_safleId);
         auction[msg.sender].isAuctionLive = true;
         auction[msg.sender].auctionConductor = msg.sender;
-        auction[msg.sender].inbloxId = lower;
+        auction[msg.sender].safleId = lower;
         auction[msg.sender].auctionLastFor = now+_auctionSeconds;
-        inbloxIdToAddress[lower] = msg.sender;
+        safleIdToAddress[lower] = msg.sender;
         alreadyActiveAuction[msg.sender] = true;
         storageContract.auctionInProcess(msg.sender, lower);
     }
 
     /**
-    * @dev Bid for a inbloxId in an ongoing auction
+    * @dev Bid for a safleId in an ongoing auction
     * This method is payable.
-    * @param _inbloxId inbloxId of a user
+    * @param _safleId safleId of a user
     */
-    function bidForInbloxId(string calldata _inbloxId) external payable returns (bool) {
+    function bidForSafleId(string calldata _safleId) external payable returns (bool) {
 
-        string memory lower = toLower(_inbloxId);
+        string memory lower = toLower(_safleId);
         uint256 bidAmount = msg.value;
 
-        require(inbloxIdToAddress[lower] != address(0x0));
+        require(safleIdToAddress[lower] != address(0x0));
         require(!isContract(msg.sender));
         
 
-        address auctioner = inbloxIdToAddress[lower];
+        address auctioner = safleIdToAddress[lower];
 
         require(auction[auctioner].isAuctionLive, "Auction is not live");
-        require(auction[auctioner].auctionConductor != msg.sender, "You cannot bid for your InbloxId");
+        require(auction[auctioner].auctionConductor != msg.sender, "You cannot bid for your SafleId");
         require(bidAmount + auction[auctioner].bidRate[msg.sender]> auction[auctioner].highestBid, "Bid amount should be greater than the current bidrate." );
         require(now < auction[auctioner].auctionLastFor, "Auction time is completed");
 
@@ -134,31 +134,31 @@ contract Auction is checkingContract {
         }
 
         auction[msg.sender].returnBidsOfOther = true;
-        transferInbloxIdToWinner();
+        transferSafleIdToWinner();
     }
 
     /**
-    * @dev Transfer the inbloxId to the winner of the Auction
+    * @dev Transfer the safleId to the winner of the Auction
     * This method can only be called internally
     */
-    function transferInbloxIdToWinner() internal returns (bool){
+    function transferSafleIdToWinner() internal returns (bool){
 
         auction[msg.sender].auctionConductor.transfer(auction[msg.sender].highestBid);
-        auction[msg.sender].inbloxIdTransferred = true;
-        require(storageContract.transferInbloxId(auction[msg.sender].inbloxId, auction[msg.sender].auctionConductor,auction[msg.sender].higestBidderAddress), "Storage contract error.");
+        auction[msg.sender].safleIdTransferred = true;
+        require(storageContract.transferSafleId(auction[msg.sender].safleId, auction[msg.sender].auctionConductor,auction[msg.sender].higestBidderAddress), "Storage contract error.");
 
     }
 
     /**
-    * @dev Transfer the inbloxId to another user
-    * @param _inbloxId inbloxId of the user to be transferred
+    * @dev Transfer the safleId to another user
+    * @param _safleId safleId of the user to be transferred
     * @param _newOwner address of the new owner
     * @return true
     */
-    function directlyTransferInbloxId(string calldata _inbloxId, address _newOwner) external returns (bool){
+    function directlyTransferSafleId(string calldata _safleId, address _newOwner) external returns (bool){
 
-        require (storageContract.resolveInbloxId( _inbloxId) == msg.sender, "You are not an owner of this InbloxId.");
-        require(storageContract.transferInbloxId(_inbloxId, msg.sender,_newOwner),"storage contract fails");
+        require (storageContract.resolveSafleId( _safleId) == msg.sender, "You are not an owner of this SafleId.");
+        require(storageContract.transferSafleId(_safleId, msg.sender,_newOwner),"storage contract fails");
         return true;
     }
 
