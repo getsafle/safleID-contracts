@@ -6,16 +6,16 @@ import "./checkingContract.sol";
 contract RegistrarMain is checkingContract{
 
     uint256 public registrarFees;
-    uint256 public userHandleNameRegFees;
+    uint256 public safleIdFees;
     address public contractOwner;
-    address payable  public  walletAddress;
+    address payable public walletAddress;
     bool public storageContractAddress;
-    bool public isHandlenameRegistrationPaused;
+    bool public safleIdRegStatus;
 
     RegistrarStorage public registrarStorageContractAddress;
 
     // @dev Modifier to ensure the function caller is the contract owner.
-    modifier onlyContractOwner () {
+    modifier onlyOwner () {
 
         require(msg.sender == contractOwner, "msg sender is not a contract owner");
         _;
@@ -30,14 +30,31 @@ contract RegistrarMain is checkingContract{
 
     }
 
-    // @dev Modifier to ensure the handlename registration is not paused.
-    modifier checkRegistartionProcess () {
+    // @dev Modifier to ensure the safleId registration is not paused.
+    modifier checkRegistrationStatus () {
 
-        require(isHandlenameRegistrationPaused == false, "Handle name Registration is Paused");
+        require(safleIdRegStatus == false, "SafleId Registration is Paused");
         _;
 
     }
 
+    // @dev Modifier to ensure the conditions for Registrar are met.
+    modifier registrarChecks(string memory _registrarName) {
+
+        require(msg.value >= registrarFees, "Registration fees not matched.");
+        require(isSafleIdValid(_registrarName));
+        _;
+
+    }
+
+    // @dev Modifier to ensure the conditions for SafleId registration are met.
+    modifier safleIdChecks(string memory _safleId) {
+
+        require(msg.value >= safleIdFees, "Registration fees not matched.");
+        require(isSafleIdValid(_safleId));
+        _;
+
+    }
 
     /**
     * @dev constructor of the contract
@@ -45,23 +62,21 @@ contract RegistrarMain is checkingContract{
     */
     constructor (address payable _walletAddress) public {
 
-        require(_walletAddress != address(0));
+        require(_walletAddress != address(0), "Please provide a valid wallet address.");
         contractOwner = msg.sender;
         walletAddress = _walletAddress;
 
     }
 
     /**
-    * @dev Set handlename fees
+    * @dev Set safleId registration fees
     * Only the contract owner can call this function
     * @param _amount fees in wei
     */
-    function setHandleNameFees(uint256 _amount) onlyContractOwner
-    public
-
+    function setSafleIdFees(uint256 _amount) public onlyOwner
     {
-        require(_amount >= 0);
-        userHandleNameRegFees = _amount;
+        require(_amount >= 0, "Please set a fees for SafleID registration.");
+        safleIdFees = _amount;
 
     }
 
@@ -70,26 +85,24 @@ contract RegistrarMain is checkingContract{
     * Only the contract owner can call this function
     * @param _amount fees in wei
     */
-    function setRegistrarFees(uint256 _amount) onlyContractOwner
-    public
-
+    function setRegistrarFees(uint256 _amount) public onlyOwner
     {
-        require(_amount >= 0);
+        require(_amount >= 0, "Please set a fees for Registrar registration.");
         registrarFees = _amount;
 
     }
 
     /**
-    * @dev Pause and resume the handlename registration
+    * @dev Pause and resume the safleId registration
     * Only the contract owner can call this function
     * @return True if paused, else false.
     */
-    function stopOrRestartRegistration () external onlyContractOwner returns (bool){
+    function toggleRegistrationStatus () external onlyOwner returns (bool){
 
-    if(isHandlenameRegistrationPaused == false){
-        isHandlenameRegistrationPaused = true;
+    if(safleIdRegStatus == false){
+        safleIdRegStatus = true;
     }else{
-        isHandlenameRegistrationPaused = false;
+        safleIdRegStatus = false;
     }
      return true;
 
@@ -98,79 +111,79 @@ contract RegistrarMain is checkingContract{
 
     /**
     * @dev Register a new Registrar
-    * Can be called only if handlename registration is not paused and storage contract is set
+    * Can be called only if safleId registration is not paused and storage contract is set
     * This method is payable.
     * @param _registrarName Registrar name in string
     */
-    function addRegistrar(string memory _registrarName)  checkRegistartionProcess checkStorageContractAddress payable
-    public
+    function registerRegistrar(string memory _registrarName) public registrarChecks(_registrarName)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable {
 
-    {
-
-        require(msg.value >= registrarFees," registration fees not matched");
-        require(isHandleNameValid(_registrarName));
-        string memory VNinLowerCase = toLower(_registrarName);
+        string memory lower = toLower(_registrarName);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.registerRegistrar(msg.sender,VNinLowerCase),"storage address error");
-
-    }
-
-    /**
-    * @dev Register a user's handlename
-    * Can be called only if handlename registration is not paused and storage contract is set
-    * This method is payable.
-    * @param _userAddress address of the user
-    * @param _handleName handlename of the user
-    */
-    function addHandleName(address _userAddress, string memory _handleName) checkRegistartionProcess checkStorageContractAddress payable
-    public
-
-    {
-
-        require(msg.value >= userHandleNameRegFees,"Fees doesn't Match");
-        require(isHandleNameValid(_handleName));
-        string memory VNinLowerCase = toLower(_handleName);
-        walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.setAddressAndHandleName(msg.sender,_userAddress,VNinLowerCase),"storage error");        
+        require(registrarStorageContractAddress.registerRegistrar(msg.sender, lower), "Storage contract error.");
 
     }
 
     /**
     * @dev Update an already registered Registrar
     * This method is payable.
-    * Can be called only if handlename registration is not paused and storage contract is set
-    * @param _registrarName string to be taken as a New name of Ragistrar
+    * Can be called only if safleId registration is not paused and storage contract is set
+    * @param _registrarName string to be taken as a New name of Registrar
     */
-    function updateRegistrar(string memory _registrarName) checkRegistartionProcess checkStorageContractAddress payable
+    function updateRegistrar(string memory _registrarName)
     public
+    registrarChecks(_registrarName)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable {
 
-    {
-
-        require(msg.value >= registrarFees,"registration fees not matched");
-        require(isHandleNameValid(_registrarName));
-        string memory VNinLowerCase = toLower(_registrarName);
+        string memory lower = toLower(_registrarName);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.updateRegistrar(msg.sender,VNinLowerCase),"Storage contract fails");
+        require(registrarStorageContractAddress.updateRegistrar(msg.sender,lower), "Storage contract error.");
 
     }
 
     /**
-    * @dev Update the handlename of a user
-    * Can be called only if handlename registration is not paused and storage contract is set
+    * @dev Register a user's safleId
+    * Can be called only if safleId registration is not paused and storage contract is set
     * This method is payable.
-    * @param _userAddress address of a user
-    * @param _newHandleName new handlename of the user to update
+    * @param _userAddress address of the user
+    * @param _safleId safleId of the user
     */
-    function updateHandleNameOfUser(address _userAddress, string memory _newHandleName) checkRegistartionProcess checkStorageContractAddress payable
+    function registerSafleId(address _userAddress, string memory _safleId) 
     public
-
+    safleIdChecks(_safleId)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable
     {
 
-        require(msg.value >= userHandleNameRegFees,"registration fees not matched");
-        require(isHandleNameValid(_newHandleName));
-        string memory VNinLowerCase = toLower(_newHandleName);
+        string memory lower = toLower(_safleId);
         walletAddress.transfer(msg.value);
-        require(registrarStorageContractAddress.updateHandleName(msg.sender,_userAddress,VNinLowerCase),"Storage contract fails");
+        require(registrarStorageContractAddress.registerSafleId(msg.sender,_userAddress,lower), "Storage contract error.");
+
+    }
+
+    /**
+    * @dev Update the safleId of a user
+    * Can be called only if safleId registration is not paused and storage contract is set
+    * This method is payable.
+    * @param _userAddress address of a user
+    * @param _newSafleId new safleId of the user to update
+    */
+    function updateSafleId(address _userAddress, string memory _newSafleId)
+    public
+    safleIdChecks(_newSafleId)
+    checkRegistrationStatus
+    checkStorageContractAddress
+    payable
+    {
+
+        string memory lower = toLower(_newSafleId);
+        walletAddress.transfer(msg.value);
+        require(registrarStorageContractAddress.updateSafleId(msg.sender,_userAddress,lower), "Storage contract error.");
 
     }
 
@@ -179,7 +192,7 @@ contract RegistrarMain is checkingContract{
     * Can be called only be the contract owner
     * @param _registrarStorageContract Address of the storage contract
     */
-    function setRegistrarStorageContract(RegistrarStorage _registrarStorageContract) onlyContractOwner
+    function setStorageContract(RegistrarStorage _registrarStorageContract) onlyOwner
     public
 
     {
@@ -195,7 +208,7 @@ contract RegistrarMain is checkingContract{
     * This method is payable.
     * @param _walletAddress to redirect fees
     */
-    function updateWalletAddress(address payable _walletAddress) onlyContractOwner
+    function updateWalletAddress(address payable _walletAddress) onlyOwner
     public
 
     {
@@ -211,13 +224,13 @@ contract RegistrarMain is checkingContract{
     * @param _aliasName Alias name in string
     * @return true if successful, else false
     */
-   function addCoins(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName) external returns (bool){
+   function mapCoins(uint256 _indexnumber, string calldata _blockchainName, string calldata _aliasName) external returns (bool){
 
         string memory lowerBlockchainName = toLower(_blockchainName);
         string memory lowerAliasName = toLower(_aliasName);
         require(_indexnumber != 0);
-        require(checkAlphaNumeric(lowerBlockchainName) && checkAlphaNumeric(lowerAliasName),"only alphanumeric allowed in blockchain name and alias name");
-        require(registrarStorageContractAddress.addCoin(_indexnumber,lowerBlockchainName,lowerAliasName, msg.sender),"Storage contract fails");
+        require(checkAlphaNumeric(lowerBlockchainName) && checkAlphaNumeric(lowerAliasName), "Only alphanumeric allowed in blockchain name and alias name");
+        require(registrarStorageContractAddress.mapCoin(_indexnumber,lowerBlockchainName,lowerAliasName, msg.sender),"Storage contract fails");
         return true;
 
    }
@@ -252,7 +265,7 @@ contract RegistrarMain is checkingContract{
         uint8 length = checkLength(_address);
         require(_index != 0 && _userAddress != address(0));
         require(length > 0);
-        require(registrarStorageContractAddress.registerCoinAddress(_userAddress,_index,lowerAddress, msg.sender),"Storage contract fail");
+        require(registrarStorageContractAddress.updateCoinAddress(_userAddress,_index,lowerAddress, msg.sender),"Storage contract fail");
 
     }
 
