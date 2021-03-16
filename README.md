@@ -69,7 +69,7 @@ Spin up a local ganache instance using the command,
 
 Create a `.env` file in the root directory and add the 12 word mnemonic seeds in the variable `mnemonic`.
 
-eg. `mnemonic='12 word seed phrase`
+eg. `mnemonic='12 word seed phrase'`
 
 
 Migrate the contracts to the ganache instance using the command,
