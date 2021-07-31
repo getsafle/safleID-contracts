@@ -1,7 +1,8 @@
 module.exports = {
     REGISTRAR_FEES: 1 * 10 ** 18,
     INVALID_REGISTRAR_FEES: 1 * 10 ** 15,
-    GAS_LIMIT: 600000000,
+    GAS_LIMIT: 6721975,
+    // GAS_LIMIT: 600000000,
     HANDLENAME_FEES: 1 * 10 ** 18,
     INVALID_HANDLENAME_FEES: 1 * 10 ** 15,
     INVALID_REGISTRAR_NAME_1: 'reg',
@@ -18,6 +19,7 @@ module.exports = {
     VALID_HANDLENAME_1: 'validhandlename1',
     VALID_HANDLENAME_2: 'validhandlename2',
     VALID_HANDLENAME_3: 'validhandlename3',
+    VALID_HANDLENAME_4: 'validhandlename4',
     INVALID_HANDLENAME_1: 'h@nd!en@me',
     INVALID_HANDLENAME_3: 'hn',
     INVALID_HANDLENAME_4: 'invalidhandlenamefour',

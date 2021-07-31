@@ -4,16 +4,17 @@ var web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 const { duration } = require('openzeppelin-solidity/test/helpers/increaseTime');
 const { time } = require('@openzeppelin/test-helpers');
 const { latestTime } = require('openzeppelin-solidity/test/helpers/latestTime');
+const truffleAssert = require('truffle-assertions');
 
 const RegistrarMain = artifacts.require('RegistrarMain.sol');
 const RegistrarStorage = artifacts.require('RegistrarStorage.sol');
 const Auction = artifacts.require('Auction.sol');
 
-const { 
+const {
     GAS_LIMIT,
-    REGISTRAR_FEES, 
-    HANDLENAME_FEES, 
-    VALID_REGISTRAR_NAME_1, 
+    REGISTRAR_FEES,
+    HANDLENAME_FEES,
+    VALID_REGISTRAR_NAME_1,
     VALID_HANDLENAME_1,
     VALID_HANDLENAME_2,
     BID_1,
@@ -40,11 +41,11 @@ contract('Auction Contract ', async (accounts) => {
     });
 
     it('Should set the Auction contract address at Storage contract.', async () => {
-        await this.mainContract.setRegistrarStorageContract(this.storageContract.address, { from: accounts[0] });
+        await this.mainContract.setStorageContract(this.storageContract.address, { from: accounts[0] });
     });
 
     it('Should check the Storage contract address.', async () => {
-        let contractAddress = await this.auctionContract.registrarStorageContractAddress.call({ gas: GAS_LIMIT });
+        let contractAddress = await this.auctionContract.storageContract.call({ gas: GAS_LIMIT });
         assert.equal(contractAddress, this.storageContract.address);
     });
 
@@ -53,126 +54,98 @@ contract('Auction Contract ', async (accounts) => {
         assert.equal(contractOwner, accounts[0]);
     });
 
-    it('Should successfully register new Registrar and Handlename at Main contract.', async () => {
+    it('Should successfully register new Registrar and SafleId at Main contract.', async () => {
 
-        await this.mainContract.addRegistrar(VALID_REGISTRAR_NAME_1, { from: accounts[2], value: REGISTRAR_FEES, gas: GAS_LIMIT });
+        await this.mainContract.registerRegistrar(VALID_REGISTRAR_NAME_1, { from: accounts[2], value: REGISTRAR_FEES, gas: GAS_LIMIT });
 
-        await this.mainContract.addHandleName(accounts[3], VALID_HANDLENAME_1, { from: accounts[2], value: HANDLENAME_FEES, gas: GAS_LIMIT });
+        await this.mainContract.registerSafleId(accounts[3], VALID_HANDLENAME_1, { from: accounts[2], value: HANDLENAME_FEES, gas: GAS_LIMIT });
 
     });
 
-    it('Should return the address by Handlename.', async () => {
-        let address = await this.storageContract.resolveHandleNameString(VALID_HANDLENAME_1);
+    it('Should return the address by SafleId.', async () => {
+        let address = await this.storageContract.resolveSafleId(VALID_HANDLENAME_1);
         assert.equal(address, accounts[3]);
     });
 
     it('Should return false if Auction is not active.', async () => {
         let isAuctionActive = await this.auctionContract.alreadyActiveAuction.call(accounts[3], { gas: GAS_LIMIT });
-        assert.equal(isAuctionActive, false);
+        assert.isFalse(isAuctionActive);
     });
 
     it('Should return error when starting the the Auction with improper timelimit.', async () => {
-        try {
-            await this.auctionContract.auctionHandlename(VALID_HANDLENAME_1, 865400 * 30, { from: accounts[3], gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert Auction time should be in between 330 to 7776000 seconds -- Reason given: Auction time should be in between 330 to 7776000 seconds.';
-            assert.equal(error.message, error_);
-        }
+        var error_ = 'Returned error: VM Exception while processing transaction: revert Auction time should be in between 330 to 7776000 seconds. -- Reason given: Auction time should be in between 330 to 7776000 seconds..';
+        await truffleAssert.reverts(this.auctionContract.auctionSafleId(VALID_HANDLENAME_1, 865400 * 30, { from: accounts[3], gas: GAS_LIMIT }), error_);
     });
 
-    it('Should return an error when trying to Auction the Handlename by non-owner.', async () => {
-        try {
-            await this.auctionContract.auctionHandlename(VALID_HANDLENAME_1, 86400 * 30, { from: accounts[2], gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert you are not an owner of this handle name -- Reason given: you are not an owner of this handle name.';
-            assert.equal(error.message, error_);
-        }
+    it('Should return an error when trying to Auction the SafleId by non-owner.', async () => {
+        var error_ = 'Returned error: VM Exception while processing transaction: revert You are not an owner of this SafleId. -- Reason given: You are not an owner of this SafleId..';
+        await truffleAssert.reverts(this.auctionContract.auctionSafleId(VALID_HANDLENAME_1, 86400 * 30, { from: accounts[2], gas: GAS_LIMIT }), error_);
     });
 
-    it('Should start the Handlename auction.', async () => {
-        await this.auctionContract.auctionHandlename(VALID_HANDLENAME_1, 86400 * 30, { from: accounts[3], gas: GAS_LIMIT });
+    it('Should start the SafleId auction.', async () => {
+        await this.auctionContract.auctionSafleId(VALID_HANDLENAME_1, 86400 * 30, { from: accounts[3], gas: GAS_LIMIT });
     });
 
     it('Should return true if Auction is active.', async () => {
         let isAuctionActive = await this.auctionContract.alreadyActiveAuction.call(accounts[3], { gas: GAS_LIMIT });
-        assert.equal(isAuctionActive, true);
+        assert.isTrue(isAuctionActive);
     });
 
-    it('Should return an error when trying to Auction the Handlename which is already in auction.', async () => {
-        try {
-            await this.auctionContract.auctionHandlename(VALID_HANDLENAME_1, 86400 * 30, { from: accounts[3], gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert Auction is already in process by this user -- Reason given: Auction is already in process by this user.';
-            assert.equal(error.message, error_);
-        }
+    it('Should return an error when trying to Auction the SafleId which is already in auction.', async () => {
+        var error_ = 'Returned error: VM Exception while processing transaction: revert Auction is already in process by this user. -- Reason given: Auction is already in process by this user..';
+        await truffleAssert.reverts(this.auctionContract.auctionSafleId(VALID_HANDLENAME_1, 86400 * 30, { from: accounts[3], gas: GAS_LIMIT }), error_);
     });
 
     it('Should return the Auction data of auctioner.', async () => {
         let auctiondata = await this.auctionContract.auction.call(accounts[3], { gas: GAS_LIMIT });
-        assert.equal(auctiondata.isAuctionLive, true);
+        assert.isTrue(auctiondata.isAuctionLive);
         assert.equal(auctiondata.auctionConductor, accounts[3]);
-        assert.equal(auctiondata.handleName, VALID_HANDLENAME_1);
+        assert.equal(auctiondata.safleId, VALID_HANDLENAME_1);
     });
 
-    it('Should return true if the Handlename of the address is in auction.', async () => {
+    it('Should return true if the SafleId of the address is in auction.', async () => {
         let auctionProcess = await this.storageContract.auctionProcess.call(accounts[3], { gas: GAS_LIMIT });
-        assert.equal(auctionProcess, true);
+        assert.isTrue(auctionProcess);
     });
 
-    it('Should return false if the Handlename of the address is not in auction.', async () => {
+    it('Should return false if the SafleId of the address is not in auction.', async () => {
         let auctionProcess = await this.storageContract.auctionProcess.call(accounts[6], { gas: GAS_LIMIT });
-        assert.equal(auctionProcess, false);
+        assert.isFalse(auctionProcess);
     });
 
     it('Should return an error when bidding function is called without Ether.', async () => {
-        try {
-            await this.auctionContract.bidForHandleName(VALID_HANDLENAME_1, { from: accounts[4], gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert bid amount should be higher then previous bid -- Reason given: bid amount should be higher then previous bid.';
-            assert.equal(error.message, error_);
-        }
+        var error_ = 'Returned error: VM Exception while processing transaction: revert Bid amount should be greater than the current bidrate. -- Reason given: Bid amount should be greater than the current bidrate..';
+        await truffleAssert.reverts(this.auctionContract.bidForSafleId(VALID_HANDLENAME_1, { from: accounts[4], gas: GAS_LIMIT }), error_);
     });
 
-    it('Should bid for the handlename.', async () => {
-        await this.auctionContract.bidForHandleName(VALID_HANDLENAME_1, { from: accounts[4], value: BID_1, gas: GAS_LIMIT });
+    it('Should bid for the SafleId.', async () => {
+        await this.auctionContract.bidForSafleId(VALID_HANDLENAME_1, { from: accounts[4], value: BID_1, gas: GAS_LIMIT });
     });
 
-    it('Should bid for the handlename.', async () => {
-        await this.auctionContract.bidForHandleName(VALID_HANDLENAME_1, { from: accounts[5], value: BID_2, gas: GAS_LIMIT });
+    it('Should bid for the SafleId.', async () => {
+        await this.auctionContract.bidForSafleId(VALID_HANDLENAME_1, { from: accounts[5], value: BID_2, gas: GAS_LIMIT });
     });
 
     it('Should return an error when a bidder bids a value less than that of the previous bidder.', async () => {
-        try {
-            await this.auctionContract.bidForHandleName(VALID_HANDLENAME_1, { from: accounts[6], value: BID_4, gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert bid amount should be higher then previous bid -- Reason given: bid amount should be higher then previous bid.';
-            assert.equal(error.message, error_)
-        }
+        var error_ = 'Returned error: VM Exception while processing transaction: revert Bid amount should be greater than the current bidrate. -- Reason given: Bid amount should be greater than the current bidrate..';
+        await truffleAssert.reverts(this.auctionContract.bidForSafleId(VALID_HANDLENAME_1, { from: accounts[6], value: BID_4, gas: GAS_LIMIT }), error_);
     });
 
-    it('Should return an error when a bidder bids for a handlename which is not registered.', async () => {
-        try {
-            await this.auctionContract.bidForHandleName(VALID_HANDLENAME_2, { from: accounts[4], value: BID_4, gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert';
-            assert.equal(error.message, error_)
-        }
+    it('Should return an error when a bidder bids for a SafleId which is not registered.', async () => {
+        var error_ = 'Returned error: VM Exception while processing transaction: revert';
+        await truffleAssert.reverts(this.auctionContract.bidForSafleId(VALID_HANDLENAME_2, { from: accounts[4], value: BID_4, gas: GAS_LIMIT }), error_);
     });
 
-    it('Should return an error when a the auctioneer bids for their own handlename.', async () => {
-        try {
-            await this.auctionContract.bidForHandleName(VALID_HANDLENAME_1, { from: accounts[3], value: BID_4, gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert you cannot bid for your handle name -- Reason given: you cannot bid for your handle name.';
-            assert.equal(error.message, error_)
-        }
+    it('Should return an error when a the auctioneer bids for their own SafleId.', async () => {
+        var error_ = 'Returned error: VM Exception while processing transaction: revert You cannot bid for your SafleId -- Reason given: You cannot bid for your SafleId.';
+        await truffleAssert.reverts(this.auctionContract.bidForSafleId(VALID_HANDLENAME_1, { from: accounts[3], value: BID_4, gas: GAS_LIMIT }), error_);
     });
 
     it('Should check the auction data of auctioneer', async () => {
         let auctiondata = await this.auctionContract.auction.call(accounts[3], { gas: GAS_LIMIT });
-        assert.equal(auctiondata.isAuctionLive, true);
+        assert.isTrue(auctiondata.isAuctionLive);
         assert.equal(auctiondata.auctionConductor, accounts[3]);
-        assert.equal(auctiondata.handleName, VALID_HANDLENAME_1);
+        assert.equal(auctiondata.safleId, VALID_HANDLENAME_1);
         assert.equal(auctiondata.higestBidderAddress, accounts[5]);
         assert.equal(parseInt(auctiondata.totalBids), 2);
         assert.equal(auctiondata.totalBidders, 2);
@@ -196,21 +169,13 @@ contract('Auction Contract ', async (accounts) => {
     });
 
     it('Should return an error when getting the bid rate for non-auctioned account.', async () => {
-        try {
-            await this.auctionContract.getBidRate(accounts[4], accounts[5]);
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert';
-            assert.equal(error.message, error_)
-        }
+        var error_ = 'Returned error: VM Exception while processing transaction: revert';
+        await truffleAssert.reverts(this.auctionContract.getBidRate(accounts[4], accounts[5]), error_);
     });
 
     it('Should return an error when refund function is called by non-auctioneer account.', async () => {
-        try {
-            await this.auctionContract.refundOtherBidders({ from: accounts[5], gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert';
-            assert.equal(error.message, error_)
-        }
+        var error_ = 'Returned error: VM Exception while processing transaction: revert';
+        await truffleAssert.reverts(this.auctionContract.refundOtherBidders({ from: accounts[5], gas: GAS_LIMIT }), error_);
     });
 
     it('Should return the bids of all bidders other than winner.', async () => {
@@ -226,35 +191,27 @@ contract('Auction Contract ', async (accounts) => {
         assert.equal(parseInt(walletBalanceLater), updateBalance);
     });
 
-    it('Should return the address by Handlename.', async () => {
-        let address = await this.storageContract.resolveHandleNameString(VALID_HANDLENAME_1);
+    it('Should return the address by SafleId.', async () => {
+        let address = await this.storageContract.resolveSafleId(VALID_HANDLENAME_1);
         assert.equal(address, accounts[5]);
     });
 
     it('Should return an error when calling refund function second time.', async () => {
-        try {
-            await this.auctionContract.refundOtherBidders({ from: accounts[3], gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert';
-            assert.equal(error.message, error_)
-        }
+        var error_ = 'Returned error: VM Exception while processing transaction: revert';
+        await truffleAssert.reverts(this.auctionContract.refundOtherBidders({ from: accounts[3], gas: GAS_LIMIT }), error_);
     });
 
-    it('Should return an error when directly transferring handlename to another account by non-owner.', async () => {
-        try {
-            await this.auctionContract.directlyTransferHandleName(VALID_HANDLENAME_1, accounts[6], { from: accounts[3], gas: GAS_LIMIT });
-        } catch (error) {
-            var error_ = 'Returned error: VM Exception while processing transaction: revert you are not an owner of this handle name -- Reason given: you are not an owner of this handle name.';
-            assert.equal(error.message, error_)
-        }
+    it('Should return an error when directly transferring SafleId to another account by non-owner.', async () => {
+        var error_ = 'Returned error: VM Exception while processing transaction: revert You are not an owner of this SafleId. -- Reason given: You are not an owner of this SafleId..';
+        await truffleAssert.reverts(this.auctionContract.directlyTransferSafleId(VALID_HANDLENAME_1, accounts[6], { from: accounts[3], gas: GAS_LIMIT }), error_);
     });
 
-    it('Should transfer the Handlename directly to another account.', async () => {
-        await this.auctionContract.directlyTransferHandleName(VALID_HANDLENAME_1, accounts[6], { from: accounts[5], gas: GAS_LIMIT });
+    it('Should transfer the SafleId directly to another account.', async () => {
+        await this.auctionContract.directlyTransferSafleId(VALID_HANDLENAME_1, accounts[6], { from: accounts[5], gas: GAS_LIMIT });
     });
 
-    it('Should return the address by Handlename.', async () => {
-        let address = await this.storageContract.resolveHandleNameString(VALID_HANDLENAME_1);
+    it('Should return the address by SafleId.', async () => {
+        let address = await this.storageContract.resolveSafleId(VALID_HANDLENAME_1);
         assert.equal(address, accounts[6]);
     });
 
