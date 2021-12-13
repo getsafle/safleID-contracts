@@ -47,7 +47,9 @@ dApps can leverage the power of a naming system to enable an overall better user
 | Main Contract         | Testnet       | [0x67Fe7143c49059FD859f13269C02F08ABF33d9Aa](https://explorer-mumbai.maticvigil.com/address/0x67Fe7143c49059FD859f13269C02F08ABF33d9Aa/transactions) |
 | Storage Contract      | Testnet       | [0x86455349E7B6580E8545ddEFdB8f20b9F475ab1f](https://explorer-mumbai.maticvigil.com/address/0x86455349E7B6580E8545ddEFdB8f20b9F475ab1f/transactions) |
 | Auction Contract      | Testnet       | [0x72E8fc98d820f7feFfcB75c8408B79E4f94eaC3b](https://explorer-mumbai.maticvigil.com/address/0x72E8fc98d820f7feFfcB75c8408B79E4f94eaC3b/transactions) |
-
+| Main Contract         | Mainnet       | [0x95A5594c63EC5B5E5A5Bb000990Ac567d90095dB](https://polygonscan.com/tx/0x1e1981ebf6b65af2fc61f60d6d57604b8e386380f6cd8398cd98fdee570ca80e) |
+| Storage Contract      | Mainnet       | [0x330b4d83830aaB73FC24B66751a02a6EE693671e](https://polygonscan.com/tx/0x4c44652a8cff8ca59cd6e39ecce16e807e3b461d4520d29b623bbe43769faed2) |
+| Auction Contract      | Mainnet       | [0xb45A4DDeF52CBc896B556E581dC62cef306e8A7d](https://polygonscan.com/tx/0xe3c4fb1ded555d0df34c57abfb97c6b85123fec3480e5cd10fbca1f7d44afe69) |
 
 ## To run the contracts locally
 
@@ -74,10 +76,6 @@ eg. `mnemonic='12 word seed phrase'`
 
 Migrate the contracts to the ganache instance using the command,
 ```truffle migrate --network matic```
-
-
-To run the test cases,
-```truffle test```
 
 
 To run code coverage for the contracts,
